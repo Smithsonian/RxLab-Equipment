@@ -1,4 +1,4 @@
-# plotNoiseSpectra.py - Plots noise spectra taken as .mat files in .png files 
+# plotNoiseSpectra.py - Plots noise spectra taken as .mat files in .png files
 #			using matplotlib
 # -----------------------------------------------------------------------------
 # P. Grimes, 17th Nov 2008
@@ -37,7 +37,7 @@ def plotNoiseSpectrum(matdata, filename, title="Noise Spectrum", fileformat='png
 	to plot to and an optional title and format to plot to"""
 
 	# Create the plot
-	plt.loglog(matdata[xstring], matdata[ystring1], 'b-', 
+	plt.loglog(matdata[xstring], matdata[ystring1], 'b-',
 		matdata[xstring], matdata[ystring2], 'r-')
 	plt.axis(axis)
 	plt.title(title)
@@ -56,7 +56,7 @@ def plotNoiseSpectrum(matdata, filename, title="Noise Spectrum", fileformat='png
 
 def getFileNames(directory=os.getcwd()):
 	"""Iterate over current directory to find filenames of .mat files
-	
+
 	By default operates on current directory.  Returns list of filenames
 	with extension removed
 	"""
@@ -85,4 +85,3 @@ if __name__=="__main__":
 #		print os.getcwd()+'/'+fname+'.mat'
 		mdata = loadmat(os.getcwd()+'/'+fname+'.mat')
 		plotNoiseSpectrum(mdata, fname, title=fname)
-
