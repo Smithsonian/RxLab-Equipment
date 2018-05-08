@@ -1,210 +1,205 @@
 # HP 8562A Spectrum Analyzer operation code
 # Paul Grimes, March 2016
 
-import pyvisa
+import Instrument
+import time
 
-class SpecA:
-  def __init__(self, InstAddr="GPIB::2"):
-    """Create Spectrum Analyzer object.
-  
-      InstAddr is the address of the spectrum analyzer - try "GPIB::2" by default"""
-    
-    self.rm = pyvisa.resource_manager()
-    self.speca = self.rm.get_resource(InstAddr)
-    self.speca.query("INI?")
-    
+class SpecA(Instrument.Instrument):
+  def __init__(self, resource):
+    """Create Spectrum Analyzer object from a PyVISA resource:
+    rm = pyvisa.ResourceManager()
+    sa = SpecA(rm.open_resource("GPIB::21"))
+
+    InstAddr is the address of the spectrum analyzer - try "GPIB::21" by default"""
+    self.resource = resource
+    self.id = self.idn()
+
+    self.traceSleep = 0.1
+
     # Get initial frequency sweep data
-    self.get_freq_span()
-    self.get_freq_center()
-    self.get_freq_start()
-    self.get_freq_stop()
-    self.get_freq_step()
-    self.rbw = get_rbw()
-    self.vbw = get_vbw()
-    
-    self.sweep_run = False
-    
-  def visa_cmd(self, cmd):
-    """Pass VISA command through to instrument
-    
-    No checking is done"""
-    self.speca.write(cmd)
-    
-    
-  def visa_query(self, cmd):
-    """Pass VISA query through to instrument and return result
-    
-    No checking is done"""
-    return self.speca.query(cmd)
-    
-    
-  def set_freq_span(self, span):
-    """Set frequency span to <span> GHz"""
-    self.speca.write("SP " + str(span*1000.0) + "MHZ")
-    
-    # Get new frequency sweep data
-    self.get_freq_span()
-    self.get_freq_center()
-    self.get_freq_start()
-    self.get_freq_stop()
-    self.get_freq_step()
-    
-    self.sweep_run = False
-    
-  def get_freq_span(self):
-    """Read the frequency span from the Spectrum Analyzer"""
-    self.freq_span = self.query_values("SP?")[0]/1.0e9
-    return freq_span
-    
-    
-  def set_freq_center(self, cfreq):
-    """Set center frequency to <cfreq> GHz"""
-    self.speca.write("CF " + str(cfreq*1000.0) + "MHZ")
-    
-    self.get_freq_span()
-    self.get_freq_center()
-    self.get_freq_start()
-    self.get_freq_stop()
-    self.get_freq_step()
-    
-    self.sweep_run = False
-    
-  def get_freq_center(self):
-    """Read the frequency center from the Spectrum Analyzer"""
-    self.freq_center = self.query_values("CF?")[0]/1.0e9
-    return self.freq_center  
-    
-  def set_freq_start(self, start):
-    """Set start frequency to <start> GHz"""
-    self.speca.write("FA " + str(start*1000.0) + "MHZ")
-    
-    # Get new frequency sweep data
-    self.get_freq_span()
-    self.get_freq_center()
-    self.get_freq_start()
-    self.get_freq_stop()
-    self.get_freq_step()
-    
-    self.sweep_run = False
-    
-  def get_freq_start(self):
-    """Read the frequency center from the Spectrum Analyzer"""
-    self.freq_start = self.query_values("FA?")[0]/1.0e9
-    return self.freq_start    
+    self.getFreqSpan()
+    self.getFreqCenter()
+    self.getFreqStart()
+    self.getFreqStop()
+    self.getFreqStep()
+    self.rbw = self.getRBW()
+    self.vbw = self.getVBW()
 
-  def set_freq_stop(self, stop):
-    """Set start frequency to <stop> GHz"""
-    self.speca.write("FB " + str(stop*1000.0) + "MHZ")
-    
+    self.sweepRun = False
+
+  def idn(self):
+    """Get the ID of the instrument"""
+    return self.query("ID?")
+
+  def setFreqSpan(self, span):
+    """Set frequency span to <span> GHz"""
+    self.resource.write("SP " + str(span*1000.0) + "MHZ")
+
     # Get new frequency sweep data
-    self.get_freq_span()
-    self.get_freq_center()
-    self.get_freq_start()
-    self.get_freq_stop()
-    self.get_freq_step()
-    
-    self.sweep_run = False
-        
-  def get_freq_stop(self):
+    self.getFreqSpan()
+    self.getFreqCenter()
+    self.getFreqStart()
+    self.getFreqStop()
+    self.getFreqStep()
+
+    self.sweepRun = False
+
+  def getFreqSpan(self):
+    """Read the frequency span from the Spectrum Analyzer"""
+    self.freq_span = float(self.query("SP?"))/1.0e9
+    return self.freq_span
+
+
+  def setFreqCenter(self, cfreq):
+    """Set center frequency to <cfreq> GHz"""
+    self.resource.write("CF " + str(cfreq*1000.0) + "MHZ")
+
+    self.getFreqSpan()
+    self.getFreqCenter()
+    self.getFreqStart()
+    self.getFreqStop()
+    self.getFreqStep()
+
+    self.sweepRun = False
+
+  def getFreqCenter(self):
     """Read the frequency center from the Spectrum Analyzer"""
-    self.freq_stop = self.query_values("FB?")[0]/1.0e9
-    
+    self.freq_center = float(self.query("CF?"))/1.0e9
+    return self.freq_center
+
+  def setFreqStart(self, start):
+    """Set start frequency to <start> GHz"""
+    self.resource.write("FA " + str(start*1000.0) + "MHZ")
+
+    # Get new frequency sweep data
+    self.getFreqSpan()
+    self.getFreqCenter()
+    self.getFreqStart()
+    self.getFreqStop()
+    self.getFreqStep()
+
+    self.sweepRun = False
+
+  def getFreqStart(self):
+    """Read the frequency center from the Spectrum Analyzer"""
+    self.freq_start = float(self.query("FA?"))/1.0e9
+    return self.freq_start
+
+  def setFreqStop(self, stop):
+    """Set start frequency to <stop> GHz"""
+    self.resource.write("FB " + str(stop*1000.0) + "MHZ")
+
+    # Get new frequency sweep data
+    self.getFreqSpan()
+    self.getFreqCenter()
+    self.getFreqStart()
+    self.getFreqStop()
+    self.getFreqStep()
+
+    self.sweepRun = False
+
+  def getFreqStop(self):
+    """Read the stop frequency from the Spectrum Analyzer"""
+    self.freq_stop = float(self.query("FB?"))/1.0e9
+
     return self.freq_stop
-    
-  def get_freq_step(self):
+
+  def getFreqStep(self):
     """Calculate the frequency step in the trace.
-    
+
     The HP8562A uses 601 data points per trace."""
     self.freq_step = (self.freq_stop-self.freq_start)/600.
-    
+
     return self.freq_step
-    
 
-  def set_rbw(self, rbw):
+
+  def setRBW(self, rbw):
     """Set resolution bandwidth in Hz
-    
-    Resolution bandwidth should be 1 or 3 times power of 10 in 
+
+    Resolution bandwidth should be 1 or 3 times power of 10 in
     range (10Hz - 3MHz).  If other value is passed, valid value above
-    requested value will be set. 
+    requested value will be set.
     (i.e. 101kHz become 300kHz, 99kHz becomes 100kHz)"""
-    self.speca.write("RB " + str(rbw) + "HZ")
-    
-    self.rbw = self.get_rbw()
-    
-    self.sweep_run = False
+    self.resource.write("RB " + str(rbw) + "HZ")
 
-  def get_rbw(self):
+    self.rbw = self.getRBW()
+
+    self.sweepRun = False
+
+  def getRBW(self):
     """Return the current resolution bandwidth in Hz"""
-    self.rbw = self.speca.query_for_values("RB?")[0]
+    self.rbw = float(self.resource.query("RB?"))
     return self.rbw
-    
 
-  def set_vbw(self, vbw):
+
+  def setVBW(self, vbw):
     """Set video bandwidth in Hz
-    
-    Video bandwidth should be 1 or 3 times power of 10 in 
+
+    Video bandwidth should be 1 or 3 times power of 10 in
     range (1Hz - 3MHz).  If other value is passed, valid value above
-    requested value will be set. 
+    requested value will be set.
     (i.e. 101kHz become 300kHz, 99kHz becomes 100kHz)"""
-    self.speca.write("VB " + str(vbw) + "HZ")
-    
-    self.vbw = self.get_vbw()
-    
-    self.sweep_run = False
-  
-  def get_vbw(self):
+    self.resource.write("VB " + str(vbw) + "HZ")
+
+    self.vbw = self.getVBW()
+
+    self.sweepRun = False
+
+  def getVBW(self):
     """Return the current resolution bandwidth in Hz"""
-    self.vbw = self.speca.query_for_values("VB?")[0]
+    self.vbw = float(self.resource.query("VB?"))
     return self.vbw
-    
-    
+
+
   def sweep(self, wait=True):
     """Runs a single sweep and waits until complete if wait==True"""
-    self.speca.write("TS")
-    
-    self.sweep_run = False
-    
+    self.resource.write("TS")
+
+    self.sweepRun = False
+
     if wait:
-        while self.sweep_run == False:
-            time.sleep(1.0)
-            if self.speca.query("DONE?") == "1":
+        while self.sweepRun == False:
+            time.sleep(self.traceSleep)
+            if self.resource.query("DONE?") == "1\n":
                 break
-                  
-    self.sweep_run = True
-    return self.sweep_run
-  
-  def get_trace(self):
+
+    self.sweepRun = True
+    return self.sweepRun
+
+  def getTrace(self):
     """Return whole trace as [freq, amplitude] pairs"""
-    if self.sweep_run == False:
+    if self.sweepRun == False:
       print "Sweep not run - running now"
       self.sweep()
-    
+
     # Set the trace data format to real ASCII numbers
-    self.speca.write("TDF P")
-    
+    self.resource.write("TDF P")
+
     # Get the format of the data
-    self.log = self.speca.query("LG?")
-    self.aunit = self.speca.query("AUNIT?")
-    self.refLevel = self.speca.query_for_values("RL?")[0]
-    
-    
+    self.log = self.resource.query("LG?")
+    self.aunit = self.resource.query("AUNITS?")
+    self.refLevel = float(self.resource.query("RL?"))
+
+
     # Get trace data from instrument
     # this is in units of 0.01 dBm
-    trace_data = self.speca.query_values("TRA?")
-    
+    rawData = self.resource.query("TRA?")
+
+    traceData = rawData.strip().split(",")
+
     data = []
     for f in range(601):
-      data.append([(self.freq_start + f*self.freq_step), trace_data[f]])
-      
+      data.append([(self.freq_start + f*self.freq_step), float(traceData[f])])
+
     self.trace = data
-    
+
     return self.trace
-    
-      
-# Function to aid in saving trace data to a file  
-def save_trace_to_csv(trace_data, filename, comment="Spectrum analyzer data"):
+
+
+# Function to aid in saving trace data to a file
+def saveTraceToCSV(trace_data, filename, comment="Spectrum analyzer data"):
   """Save trace data to csv file"""
-  
+
   header = """
   # {}
   #
@@ -216,13 +211,13 @@ def save_trace_to_csv(trace_data, filename, comment="Spectrum analyzer data"):
   #
   # Freq     Amp
   """.format(comment, self.freq_start, self.freq_stop, self.rbw, self.vbw, self.log, self.aunit, self.refLevel)
-  
+
   file = open(filename, "w")
-  
+
   file.write(header+"\n\r")
-  
+
   for p in trace_data:
     line = str(p[0]) + ", " + str(p[1]) + "\n"
     file.write(line)
-    
+
   file.close()
