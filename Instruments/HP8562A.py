@@ -15,6 +15,7 @@ class SpecA(Instrument.Instrument):
     self.id = self.idn()
 
     self.traceSleep = 0.1
+    self._verbose_ = False
 
     # Get initial frequency sweep data
     self.getFreqSpan()
@@ -169,7 +170,8 @@ class SpecA(Instrument.Instrument):
   def getTrace(self):
     """Return whole trace as [freq, amplitude] pairs"""
     if self.sweepRun == False:
-      print "Sweep not run - running now"
+      if self._verbose_:
+          print("Sweep not run - running now")
       self.sweep()
 
     # Set the trace data format to real ASCII numbers
@@ -196,28 +198,28 @@ class SpecA(Instrument.Instrument):
     return self.trace
 
 
-# Function to aid in saving trace data to a file
-def saveTraceToCSV(trace_data, filename, comment="Spectrum analyzer data"):
-  """Save trace data to csv file"""
+    # Function to aid in saving trace data to a file
+  def saveTraceToCSV(self, trace_data, filename, comment="Spectrum analyzer data"):
+    """Save trace data to csv file"""
 
-  header = """
-  # {}
-  #
-  # Frequency Range {} - {}
-  # Resolution Bandwidth {}
-  # Video Bandwidth {}
-  # Amplitude Units {} {}
-  # Ref Level {}
-  #
-  # Freq     Amp
-  """.format(comment, self.freq_start, self.freq_stop, self.rbw, self.vbw, self.log, self.aunit, self.refLevel)
+    header = """
+    # {}
+    #
+    # Frequency Range {} - {}
+    # Resolution Bandwidth {}
+    # Video Bandwidth {}
+    # Amplitude Units {} {}
+    # Ref Level {}
+    #
+    # Freq     Amp
+    """.format(comment, self.freq_start, self.freq_stop, self.rbw, self.vbw, self.log, self.aunit, self.refLevel)
 
-  file = open(filename, "w")
+    file = open(filename, "w")
 
-  file.write(header+"\n\r")
+    file.write(header+"\n\r")
 
-  for p in trace_data:
-    line = str(p[0]) + ", " + str(p[1]) + "\n"
-    file.write(line)
+    for p in trace_data:
+      line = str(p[0]) + ", " + str(p[1]) + "\n"
+      file.write(line)
 
-  file.close()
+    file.close()
