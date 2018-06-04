@@ -13,11 +13,8 @@ class HP8508A(Instrument.Instrument):
         pm = HP8508A(rm.open_resource(<InstAddr>))
         InstAddr is the PyVisa address of the VVM - try "GPIB::8" by default"""
 
-        # Check ID is correct
-        if strict == True:
-            if self.idn().split(",")[1] != idString:
-                raise ValueError, "HP8508A Module: Specified instrument is not an HP 8508A VVM"
-
+        super().__init__(resource, strict, idString)
+        
         # Set some internal state parameters to allow return values to be interpreted
         self.mode = "UNKNOWN"
         self.format = self.getFormat()

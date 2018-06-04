@@ -12,7 +12,7 @@ class SpecA(Instrument.Instrument):
 
         InstAddr is the address of the spectrum analyzer - try "GPIB::21" by default"""
         self.resource = resource
-        self.id = self.idn()
+
 
         self.traceSleep = 0.1
         self._verbose_ = False
@@ -27,7 +27,8 @@ class SpecA(Instrument.Instrument):
         self.vbw = self.getVBW()
 
         self.sweepRun = False
-
+    
+    @property
     def idn(self):
         """Get the ID of the instrument"""
         return self.query("ID?")
