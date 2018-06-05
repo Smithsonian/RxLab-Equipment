@@ -15,11 +15,12 @@ class PowerMeter(Instrument.Instrument):
         
         # Set up the connection.
         # HP 436A needs a null line ending on write
-        self.resource.write_termination = ""
+        self.resource.read_termination = "\r\n"
         self.resource.timeout = 5000
         
-        self._readRanges = list(" IJKLM")
+        self._ranges = list(" IJKLM")
         self._modes = { "A":"Watts", "B":"dB Relative", "C": "dB Ref", "D":"dBm"}
+        self._statuses = {"P":"Data Valid", "Q":"Watts, under range", "R":"Over range", "S":"dB, under range", "T":"Auto zero under range, 1", "U":"Auto zero under range, 2-5", "V":"Auto zero over range"}
         
     @property
     def idn(self):
@@ -50,11 +51,11 @@ class PowerMeter(Instrument.Instrument):
         #   R : Free-run at maximum rate
         #   V : Free-run with settling timeout
         
-        return self.resource.query("{}{}{}{}".format(range, mode, cal_factor, rate)
+        return self.resource.query("{}{}{}{}".format(range, mode, cal_factor, rate))
         
     def unpackDataStr(self, dataStr):
         """Unpack the data string, returning the value in whatever mode we're in"""
-        self.status = dataStr[0]
+        self.status = self._statuses[dataStr[0]]
         # Status is one of:
         #   P - Measured value valid
         #   Q - Watts mode under range
@@ -86,10 +87,48 @@ class PowerMeter(Instrument.Instrument):
         elif sign == "-":
             s = -1
         else:
-            raise ValueError("Got wrong sign character from Power Meter - {}".format(sign)
+            raise ValueError("Got wrong sign character from Power Meter - {}".format(sign))
             
         value = s*float(dataStr[3:12])
         
         return value
         
-    def getData(self, range, mode, cal_factor, 
+    def getData(self, range="9", mode="A", cal_factor="+", rate="V"):
+        """Return the power as a float, and set the properties of the PowerMeter
+        object to describe the status and what the measurement represents
+        
+        Range is one of :
+          1-5 : Most to least sensitive
+          9   : Auto
+        
+        Mode is one of:
+          A : Watts
+          B : dB Relative
+          C : dB Ref (switch pressed)
+          D : dBm
+        
+        Cal Factor is one of:
+          + : Disable
+          - : Enable (front-panel switch setting)
+        
+        Measurement Rate is one of:
+          H : Hold
+          T : Trigger with settling time
+          I : Trigger immediately
+          R : Free-run at maximum rate
+          V : Free-run with settling timeout
+        """
+        dataStr = self.getDataStr(range, mode, cal_factor, rate)
+        data = self.unpackDataStr(dataStr)
+        return data
+        
+if __name__ == "__main__":
+    import visa
+    rm = visa.ResourceManager()
+    res = rm.open_resource("GPIB::12")
+    pm = PowerMeter(res)
+    
+    print("Power : {:g} {:s}".format(pm.getData(), pm.mode))
+    print("Range : {:d}".format(pm.range))
+    print("Status: {:s}".format(pm.status))
+    
