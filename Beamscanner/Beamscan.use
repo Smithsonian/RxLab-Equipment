@@ -1,7 +1,7 @@
-Test    		    !Output file name of scan data
+Test.xlsx   		    !Output file name of scan data
 50			    !Range (ex: 50 --> 50x50mm)
-.5                          !Step size [mm]
+1                           !Step size [mm]
 2                           !Averaging
 LOG,POLAR                   !Format type of VVM data
 345.0                       !Signal Frequency in GHz  
-5000                        !Conversion factor for MSL's (ex: 5000 microsteps/mm)
+5000                        !Conversion factor for MSL's (default: 5000 microsteps/mm)
