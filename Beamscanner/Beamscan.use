@@ -1,6 +1,6 @@
 Test.xlsx   		    !Output file name of scan data
 50			    !Range (ex: 50 --> 50x50mm)
-1                           !Step size [mm]
+.1                           !Step size [mm]
 2                           !Averaging
 LOG,POLAR                   !Format type of VVM data
 345.0                       !Signal Frequency in GHz  
