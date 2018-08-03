@@ -84,7 +84,6 @@ class MSL(Instrument.Instrument):
         'Makes the minimum position the home'
         self.moveAbs(-550000)
         self.hold()
-        self.setHome()
         while self.getPos() != '0':
             self.setHome()
         
