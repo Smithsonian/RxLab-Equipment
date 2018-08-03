@@ -7,7 +7,7 @@
 import visa
 import os
 import time
-import pyoo
+import sys
 
 import numpy as np
 import matplotlib
@@ -32,6 +32,7 @@ class Beamscanner:
     def initTime(self):
         # Assigns start time
         self.start_time = time.time()
+        print("Starting...\n")
 
     def readUSE(self, useFile="Beamscan.use"):
         # If use file is entered, use that file instead of default.
@@ -83,6 +84,14 @@ class Beamscanner:
         self.msl_x.hold()
         self.msl_y.hold()
         
+        # Sets MSL motion parameters
+        self.msl_x.setAccel(5000000)
+        self.msl_x.setDecel(5000000)
+        self.msl_x.setVelMax(100000)
+        self.msl_y.setAccel(5000000)
+        self.msl_y.setDecel(5000000)
+        self.msl_y.setVelMax(100000)
+        
     def setRange(self, Range):
         # Range of travel stage motion (50x50mm)
         self.pos_x_max = int((Range/2) * self.conv_factor) # 25 mm * 5000 microsteps per mm
@@ -125,11 +134,11 @@ class Beamscanner:
             self.findMaxPos()
             
             Range = res * 2
-            res = Range / 10
+            res = Range / 5
 
         print("\n")
         
-   def moveToCenter(self):
+    def moveToCenter(self):
         # Moves MSL's to center position and sets new home position
         self.msl_x.moveAbs(self.pos_x_center)
         self.msl_y.moveAbs(self.pos_y_center)
@@ -137,7 +146,7 @@ class Beamscanner:
         self.msl_y.hold()
         self.msl_x.setHome()
         self.msl_y.setHome()
-       
+
     def initScan(self, Range):
         # Get range parameters for scan
         self.setRange(Range)
@@ -175,7 +184,7 @@ class Beamscanner:
                     trans = self.vvm.getTransmission()
                     self.vvm_data.append(trans)
                     self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y/self.conv_factor))
-                    print("    X: " + str(self.pos_x/self.conv_factor) + ", Y: " + str(self.pos_y/self.conv_factor))
+                    print("    X: {:.3}".format(self.pos_x/self.conv_factor) + ", Y: {:.3}".format(self.pos_y/self.conv_factor))
                     print("    " + str(trans))
                     # X MSL steps relatively, if not in maximum position
                     if self.pos_x != self.pos_x_max:
@@ -196,7 +205,7 @@ class Beamscanner:
                     trans = self.vvm.getTransmission()
                     self.vvm_data.append(trans)
                     self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y/self.conv_factor))
-                    print("    X: " + str(self.pos_x/self.conv_factor) + ", Y: " + str(self.pos_y/self.conv_factor))
+                    print("    X: {:.3}".format(self.pos_x/self.conv_factor) + ", Y: {:.3}".format(self.pos_y/self.conv_factor))
                     print("    " + str(trans))
                     # X MSL steps relatively in opposite direction (-), if not in minimum position
                     if self.pos_x != self.pos_x_min:
@@ -225,12 +234,10 @@ class Beamscanner:
     def spreadsheet(self):
         print("Writing data to spreadsheet...")
         
-        # Creates localhost for libre office
-        os.system("soffice --accept='socket,host=localhost,port=2002;urp;' --norestore --nologo --nodefault # --headless")
-        # Uses pyoo to open spreadsheet
-        desktop = pyoo.Desktop('localhost',2002)
-        doc = desktop.create_spreadsheet()
-    
+        # Creates document for libre office
+        out = open("BeamscannerData/" + self.save_name, 'w')
+        out.write("Time (s) \tX Position (mm) \tY Position (mm) \tAmplitude (dB) \tPhase (deg)\n")  
+        
         x_data = []
         y_data = []
         amp_data = []
@@ -239,7 +246,7 @@ class Beamscanner:
         for i in range(len(self.pos_data)):
             x_data.append(self.pos_data[i][0])
             y_data.append(self.pos_data[i][1])
-            
+
             # Reformats VVM data if not already in proper form
             if type(self.vvm_data[i]) == tuple:
                 amp_data.append(self.vvm_data[i][0])
@@ -248,39 +255,26 @@ class Beamscanner:
                 amp_data.append(float(self.vvm_data[i].split(",")[0]))
                 phase_data.append(float(self.vvm_data[i].split(",")[1]))
     
-        try:
             # Writes data to spreadsheet
-            sheet = doc.sheets[0]
-            sheet[0,0:5].values = ["Time (s)","X Position (mm)", "Y Position (mm)", "Amplitude (dB)", "Phase (deg)"]
-            sheet[1:len(self.time_data)+1, 0].values = self.time_data
-            sheet[1:len(self.pos_data)+1, 1].values = x_data
-            sheet[1:len(self.pos_data)+1, 2].values = y_data
-            sheet[1:len(self.pos_data)+1, 3].values = amp_data
-            sheet[1:len(self.pos_data)+1, 4].values = phase_data
-    
-            doc.save('BeamScannerData/' + str(self.save_name) + '.xlsx')
-            doc.close()
-    
-        except (ValueError, KeyboardInterrupt, RuntimeError):
-            doc.close()
-            pass
+            out.write(str(self.time_data[i]) + '\t' + str(x_data[i]) + '\t' + str(y_data[i])
+                          + '\t' + str(amp_data[i]) + '\t' + str(phase_data[i]) + '\n')
+                
+        out.close() 
             
-            
-    def contour_plot(self):
-        # Makes contour plot given beamscanner object pos_data & vvm_data format, not spreadsheet data format
+    def contour_plot(self, file_name):
+        # Makes contour plot given spreadsheet data format
         x_data = []
         y_data = []
-        amp_data = []    
-
-        for i in range(len(self.pos_data)):
-            x_data.append(self.pos_data[i][0])
-            y_data.append(self.pos_data[i][1])
-    
-            if type(self.vvm_data[i]) == tuple:
-                amp_data.append(self.vvm_data[i][0])
+        amp_data = []   
         
-            elif type(self.vvm_data[i]) == str:
-                amp_data.append(float(self.vvm_data[i].split(",")[0]))
+        f = open("BeamscannerData/" + str(file_name), 'r')
+        lines = f.readlines()
+        f.close()
+        
+        for i in range(len(lines) - 1):
+            x_data.append(float(lines[i+1].split()[1]))
+            y_data.append(float(lines[i+1].split()[2]))
+            amp_data.append(float(lines[i+1].split()[3]))
     
         pos_x_min = min(x_data)
         pos_x_max = max(x_data)
@@ -301,19 +295,18 @@ class Beamscanner:
         plt.title("Amplitude vs. Position")
         plt.show()
     
-    def time_plot(self):
+    def time_plot(self, file_name):
         # Makes time vs amplitude & phase plot given beamscanner data format, not spreadsheet data format
         amp_data = []
         phase_data = []
-
-        for i in self.vvm_data:
-            if type(self.vvm_data[i]) == tuple:
-                amp_data.append(i[0])
-                phase_data.append(i[1])
         
-            elif type(self.vvm_data[i]) == str:
-                amp_data.append(float(i.split(",")[0]))
-                phase_data.append(float(i.split(",")[1]))
+        f = open("BeamscannerData/" + str(file_name), 'r')
+        lines = f.readlines()
+        f.close()
+        
+        for i in range(len(lines) - 1):
+            amp_data.append(float(lines[i+1].split()[3]))
+            phase_data.append(float(lines[i+1].split()[4]))
         
         fig, ax1 = plt.subplots()
     
@@ -332,23 +325,31 @@ class Beamscanner:
         fig.tight_layout()
         plt.show()
     
-    def y_plot(self):
-        # Makes a plot of amplitude & phase vs. Y-position along X = 0 plane
+    def y_plot(self, file_name):
+        # Makes plot of amplitude & phase vs. Y-position along X = 0 plane
+        x_data_all = []
+        y_data_all = []
         y_data = []
+        amp_data_all = []
         amp_data = []
-        phase_data = []    
+        phase_data_all = []    
+        phase_data = []
 
-        for i in range(len(self.pos_data)):
-            if self.pos_data[i][0] == 0:
-                y_data.append(self.pos_data[i][1])
-    
-                if type(self.vvm_data[i]) == tuple:
-                    amp_data.append(self.vvm_data[i][0])
-                    phase_data.append(self.vvm_data[i][1])
+        f = open("BeamscannerData/" + str(file_name), 'r')
+        lines = f.readlines()
+        f.close()
         
-                elif type(self.vvm_data[i]) == str:
-                    amp_data.append(float(self.vvm_data[i].split(",")[0]))
-                    phase_data.append(float(self.vvm_data[i].split(",")[1]))
+        for i in range(len(lines) - 1):
+            x_data_all.append(float(lines[i+1].split()[1]))
+            y_data_all.append(float(lines[i+1].split()[2]))
+            amp_data_all.append(float(lines[i+1].split()[3]))
+            phase_data_all.append(float(lines[i+1].split()[4]))
+            
+        for i in range(len(x_data_all)):
+            if x_data_all[i] == 0:
+                y_data.append(y_data_all[i])
+                amp_data.append(amp_data_all[i])
+                phase_data.append(phase_data_all[i])
             
         fig, ax1 = plt.subplots()
     
@@ -381,7 +382,6 @@ if __name__ == "__main__":
     
     # Begin
     bs = Beamscanner()
-    print("Starting...\n")
     bs.initTime()
     bs.readUSE()
     
@@ -418,10 +418,10 @@ if __name__ == "__main__":
 
     print("Plotting data ...")
     # Plots position vs. amplitude contour plot
-    bs.contour_plot()
+    bs.contour_plot(bs.save_name)
     # Plots amplitude and phase vs. time
-    bs.time_plot()
+    bs.time_plot(bs.save_name)
     # Plots amplitude and phase vs. y position for slice at center of beam
-    bs.y_plot()
+    bs.y_plot(bs.save_name)
 
     print("\nEnd.")
