@@ -39,6 +39,10 @@ class MSL(Instrument.Instrument):
     def setAccel(self, acl):
         'Sets acceleration'
         self.write("A="+str(acl))
+    
+    def setDecel(self, dec):
+        'Sets deceleration'
+        self.write("D="+str(dec))
         
     def getAccel(self):
         'Returns acceleration'
@@ -81,6 +85,8 @@ class MSL(Instrument.Instrument):
         self.moveAbs(-550000)
         self.hold()
         self.setHome()
+        while self.getPos() != '0':
+            self.setHome()
         
     def calibrate(self):
         'Calibration'
