@@ -70,7 +70,7 @@ class Beamscanner:
         self.vvm.setFormat(self.Format)
         self.vvm.setAveraging(self.Average)
         self.vvm.setTriggerBus()
-        print("\nVVM format: " + str(bs.vvm.getFormat()) + "\n")
+        print("\nVVM format: " + str(self.vvm.getFormat()) + "\n")
         
     def initSG(self):
         # Initializes signal generator parameters
@@ -412,7 +412,7 @@ if __name__ == "__main__":
 
     # Finished scanning
     print("\nExecution time: " + str(time.time() - bs.start_time))
-    '''
+    
     # Writing to spread sheet
     bs.spreadsheet()
     
@@ -423,7 +423,7 @@ if __name__ == "__main__":
     bs.time_plot(bs.save_name)
     # Plots amplitude and phase vs. y position for slice at center of beam
     bs.y_plot(bs.save_name)
-    '''
+    
     print("\nEnd.")
 
     

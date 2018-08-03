@@ -69,7 +69,7 @@ class Beamscanner:
         self.vvm.setFormat(self.Format)
         self.vvm.setAveraging(self.Average)
         self.vvm.setTriggerBus()
-        print("VVM format: " + str(bs.vvm.getFormat()) + "\n")
+        print("\nVVM format: " + str(self.vvm.getFormat()) + "\n")
         
     def initSG(self):
         # Initializes signal generator paramters
