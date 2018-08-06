@@ -181,7 +181,13 @@ class Beamscanner:
                     # Collects VVM and position data
                     time.sleep(self.delay)
                     self.time_data.append(time.time())
-                    self.trans = self.vvm.getTransmission()
+                    # Gets transmissions from VVM and loops in case of error.
+                    while True:
+                        try:
+                            self.trans = self.vvm.getTransmission()
+                            break
+                        except ValueError:
+                            pass
                     self.vvm_data.append(self.trans)
                     self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y))
                     print("    X: "+ str(round(self.pos_x/self.conv_factor,3)) + ", Y: " + str(round(self.pos_y , 3)))
@@ -202,7 +208,12 @@ class Beamscanner:
                     # Collects VVM and position data
                     time.sleep(self.delay)
                     self.time_data.append(time.time())
-                    self.trans = self.vvm.getTransmission()
+                    while True:
+                        try:
+                            self.trans = self.vvm.getTransmission()
+                            break
+                        except ValueError:
+                            pass
                     self.vvm_data.append(self.trans)
                     self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y))
                     print("    X: " + str(round(self.pos_x/self.conv_factor , 3)) + ", Y: " + str(round(self.pos_y, 3)))
