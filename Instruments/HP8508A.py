@@ -1,17 +1,13 @@
-# HP 8508A Vector Voltmeter operation code
-# Paul Grimes, June 2018
-
 import Instrument
-import time
 
 class HP8508A(Instrument.Instrument):
     '''Class for communicating with an HP 8508A Vector Voltmeter'''
     def __init__(self, resource, strict=False, idString="8508A-050"):
         """Create Vector Voltmeter object from PyVisa resource.
-        
+     
         rm = pyvisa.ResourceManager()
         pm = HP8508A(rm.open_resource(<InstAddr>))
-        InstAddr is the PyVisa address of the VVM - try "GPIB::8" by default"""
+        InstAddr is the PyVisa address of the VVM - try "GPIB0::8::INSTR" by default"""
 
         super().__init__(resource, strict, idString)
         
@@ -21,8 +17,11 @@ class HP8508A(Instrument.Instrument):
         self.average = self.getAveraging()
         self.triggersource = "UNKNOWN"
         self.triggered = False
-
-
+        
+        # Set termination characters
+        self.resource.read_termination = '\n'
+        self.resource.write_termination = '\r\n'
+        
     def setTransmission(self):
         '''Set the VVM to output transmission data - relative amplitude (A/B) and phase (A-B)'''
         self.write("SENSE TRANSMISSION")
@@ -30,29 +29,30 @@ class HP8508A(Instrument.Instrument):
 
     def setMode(self, mode):
         '''Set the VVM measurement mode'''
-        self.write("SENSE {:s}".format(sense))
+        self.write("SENSE {:s}".format(mode))
         self.mode = mode
 
     def setTrigger(self, trigger):
         '''Set the trigger for the VVM data acquisition
-
         Valid options for the trigger are:
             BUS  - Trigger from Bus clock
             FREE - Freerunning'''
         self.write("TRIG:SOUR {:s}".format(trigger))
         self.triggersource = trigger
 
+
     def setTriggerBus(self):
         '''Set the trigger to the Bus clock'''
         self.setTrigger("BUS")
+
 
     def setTriggerFree(self):
         '''Set the trigger to free run'''
         self.setTrigger("FREE")
 
+
     def setFormat(self, format):
         '''Set the output format of the VVM
-
         Valid options are:
             LIN - (Volts)
             LOG - (dB)
@@ -61,12 +61,12 @@ class HP8508A(Instrument.Instrument):
             CART - volts as (real, imag)
             '''
         self.write("FORMAT {:s}".format(format))
-        self.getFormat()
+
 
     def getFormat(self):
         '''Return the current output format of the VVM'''
         self.format = self.query("FORMAT?")
-
+        
         return self.format
 
 
@@ -77,14 +77,13 @@ class HP8508A(Instrument.Instrument):
 
     def setAveraging(self, window):
         '''Set the VVM to average <window> samples before returning data'''
+        '''Window range from 0 to 10 (2^window)'''
         self.write("AVER:COUN {:d}".format(window))
-        self.getAveraging()
 
 
     def getAveraging(self):
         '''Get the number of samples averaged for each data point'''
         self.averaging = int(self.query("AVER:COUN?"))
-
         return self.averaging
 
 
@@ -100,28 +99,49 @@ class HP8508A(Instrument.Instrument):
 
         # Get the data
         datastr = self.getData("TRANSMISSION")
-
-        if self.format == "LOGARITHMIC,POLAR":
+        
+        if self.format == "LOGARITHMIC,POLAR" or self.format == "LINEAR,POLAR":
             amp = float(datastr.split(",")[0])
             phase = float(datastr.split(",")[1])
             data = (amp, phase)
-        elif self.format == "RECT" or self.format == "CART":
+
+        elif self.format == "LINEAR,RECTANGULAR" or self.format == "LOGARITHMIC,RECTANGULAR":
             x = float(datastr.split(",")[0])
             y = float(datastr.split(",")[1])
             data = complex(x, y)
+            
         else: # Unknown format, probably single valued
             try:
                 # Try to convert unknown format to a float, if not return raw string
                 data = float(datastr)
             except ValueError:
                 data = datastr
-
         return data
-
+    
+    
+    def getUnits(self):
+        ''' Returns units for format types'''
+        x = str(self.format.split(",")[0])
+        y = str(self.format.split(",")[1])
+        
+        if x == "LINEAR":
+            x_units = "volts"
+        elif x == "LOGARITHMIC":
+            x_units = "dB"
+            
+        if y == "POLAR":
+            y_units = "deg"
+        elif y == "RECTANGULAR":
+            y_units = "Real + Imag"
+        
+        units = (x_units, y_units)
+        
+        return units
+    
+    
     def getData(self, meas):
-        '''Return the requested measurement(s) from the VVM
-
-        <meas> is one of:
+        '''Return the requested measurement(s) from the VVM<meas> is one of:
+        
         AVOLtage, BVOLtage - A and B voltages
         APOWer, BPOWer - A and B powers
         PHASe - phase between A and B
@@ -132,7 +152,6 @@ class HP8508A(Instrument.Instrument):
         Y
         Z
         CORE
-
         <meas> can be concatenated with comma separation
         '''
         # Trigger the measurement if required
@@ -140,8 +159,8 @@ class HP8508A(Instrument.Instrument):
             self.trigger()
 
         # Get the data
-        datastr = self.query("MEAS? %s".format(meas))
-
+        datastr = self.query("MEAS? {:s}".format(meas))
+        
         # Reset the triggered state
         self.triggered = False
 
