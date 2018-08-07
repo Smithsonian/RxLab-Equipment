@@ -1,6 +1,6 @@
 ###########################################################
 #                                                         #
-# Load Mover controls using a USB-1408FS-PLUS DAQ.        #
+# Load Mover controls using a USB-1408FS-PLUS device.     #
 #                                                         #
 # Larry Gardner, July 2018                                #         
 #                                                         #
