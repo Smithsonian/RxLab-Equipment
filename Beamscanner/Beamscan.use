@@ -3,5 +3,8 @@ Test.xlsx   		    !Output file name of scan data
 .1                          !Step size [mm]
 5                           !Averaging
 LOG,POLAR                   !Format type of VVM data
-10e9                        !Signal Frequency in Hz (10MHz - 2GHz)  
+30003333333		    !RF Frequency in Hz
+15000000000		    !LO Frequency in Hz  
+20		 	    !RF Power in dBm
+20			    !LO Power in dBm
 5000                        !Conversion factor for MSL's (default: 5000 microsteps/mm)

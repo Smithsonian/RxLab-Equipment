@@ -27,7 +27,8 @@ class Beamscanner:
         self.vvm = None
         self.msl_x = None
         self.msl_y = None
-        self.sg = None
+        self.RF = None
+        self.LO = None
     
     def initTime(self):
         # Assigns start time
@@ -51,8 +52,11 @@ class Beamscanner:
         self.Step = float(lines[2].split()[0])
         self.Average = int(lines[3].split()[0])
         self.Format = lines[4].split()[0]
-        self.Freq = float(lines[5].split()[0])
-        self.conv_factor = int(lines[6].split()[0])
+        self.RFfreq = float(lines[5].split()[0])
+        self.LOfreq = float(lines[6].split()[0])
+        self.RFpow = float(lines[7].split()[0])
+        self.LOpow = float(lines[8].split()[0])
+        self.conv_factor = int(lines[9].split()[0])
         
     def initGPIB(self):
         # Configures GPIB upon new bus entry
@@ -73,10 +77,15 @@ class Beamscanner:
         
     def initSG(self):
         # Initializes signal generator paramters
-        self.sg.setFreq(self.Freq)
-        self.sg.on()
-        print("Signal generator is ON at frequency of " + str(self.Freq) + ".")
-    
+        self.RF.setFreq(self.RFfreq)
+        self.RF.setPower(self.RFpow)
+        self.RF.on()
+        self.LO.setFreq(self.LOfreq)
+        self.LO.setPower(self.LOpow)
+        self.LO.on()
+        print("RF: Frequency = " + str(self.RFfreq) + " Hz, Power = " + str(self.RFpow) +
+              " dBm\nLO: Frequency =  " + str(self.LOfreq) + " Hz, Power = " + str(self.LOpow) + "dBm")        
+
     def initMSL(self):
         # Sets MSL home positions to minimum position to synchronize between tests
         self.msl_x.zero()
@@ -242,7 +251,8 @@ class Beamscanner:
             
     def endSG(self):
         # Turns off signal generator output
-        self.sg.off()
+        self.RF.off()
+        self.LO.off()
     
     def spreadsheet(self):
         print("Writing data to spreadsheet...")
@@ -401,7 +411,8 @@ if __name__ == "__main__":
     # Establishes instrument communication
     rm = bs.initGPIB()
     bs.vvm = HP8508A.HP8508A(rm.open_resource("GPIB0::8::INSTR"))
-    bs.sg = HMCT2240.HMCT2240(rm.open_resource("GPIB0::30::INSTR"))
+    bs.RF = HMCT2240.HMCT2240(rm.open_resource("GPIB0::30::INSTR"))
+    bs.LO = HMCT2240.HMCT2240(rm.open_resource("GPIB0::23::INSTR"))
     bs.msl_x = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0"))
     bs.msl_y = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB1"))
     
