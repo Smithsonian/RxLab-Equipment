@@ -76,7 +76,7 @@ class Beamscanner:
         # Initializes signal generator parameters
         self.sg.setFreq(self.Freq)
         self.sg.on()
-        print("Signal generator is ON at frequency of " + str(freq) + ".")
+        print("Signal generator is ON at frequency of " + str(self.Freq) + ".")
         
     def initMSL(self):
         # Sets MSL home positions to minimum position to synchronize between tests
@@ -428,8 +428,10 @@ if __name__ == "__main__":
     bs.spreadsheet()
     
     print("Plotting data ...")
+    '''
     # Plots position vs. amplitude contour plot via function
     bs.contour_plot(bs.save_name)
+    '''
     # Plots amplitude and phase vs. time
     bs.time_plot(bs.save_name)
     # Plots amplitude and phase vs. y position for slice at center of beam

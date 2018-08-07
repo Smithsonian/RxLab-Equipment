@@ -75,7 +75,7 @@ class Beamscanner:
         # Initializes signal generator paramters
         self.sg.setFreq(self.Freq)
         self.sg.on()
-        print("Signal generator is ON at frequency of " + str(freq) + ".")
+        print("Signal generator is ON at frequency of " + str(self.Freq) + ".")
     
     def initMSL(self):
         # Sets MSL home positions to minimum position to synchronize between tests
