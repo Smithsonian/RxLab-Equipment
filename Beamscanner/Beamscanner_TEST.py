@@ -14,7 +14,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
 import numpy.polynomial.polynomial as poly
-from time import sleep
 
 import HP8508A
 import HMCT2240
@@ -180,7 +179,6 @@ class Beamscanner:
         self.time_data = []
 
         self.direction = "right"
-        self.delay = 0
         
         while self.pos_y <= self.pos_y_max:
             # "Direction" is the direction at which the X MSL travels
@@ -188,7 +186,6 @@ class Beamscanner:
             if self.direction == "right":
                 while self.pos_x <= self.pos_x_max:
                     # Collects VVM and position data
-                    time.sleep(self.delay)
                     self.time_data.append(time.time())
                     # Gets transmissions from VVM and loops in case of error.
                     while True:
@@ -215,7 +212,6 @@ class Beamscanner:
             elif self.direction == "left":
                 while self.pos_x >= self.pos_x_min:
                     # Collects VVM and position data
-                    time.sleep(self.delay)
                     self.time_data.append(time.time())
                     while True:
                         try:
@@ -309,7 +305,7 @@ class Beamscanner:
         yi = np.linspace(pos_y_min, pos_y_max, 1000)
         zi = griddata(x_data, y_data, amp_data, xi, yi, interp = "linear")
 
-        CS = plt.contour(xi, yi, zi, levels=[-35,-30,-25,-20, -15, -10, -5], colors='black')
+        CS = plt.contour(xi, yi, zi, colors = 'black')
         plt.clabel(CS, inline =1)
         plt.xlabel("X Position (mm)")
         plt.ylabel("Y Position (mm)")
@@ -420,7 +416,7 @@ if __name__ == "__main__":
     # Initializes instruments
     bs.initVVM()
     bs.initMSL()
-    bs.initSG()
+    #bs.initSG()
 
     # Find center of beam to calibrate to
     bs.findCenter()
@@ -442,7 +438,7 @@ if __name__ == "__main__":
     bs.spreadsheet()
     
     print("Plotting data ...")
-    '''
+    
     # Plots position vs. amplitude contour plot via function
     bs.contour_plot(bs.save_name)
     '''
@@ -450,7 +446,7 @@ if __name__ == "__main__":
     bs.time_plot(bs.save_name)
     # Plots amplitude and phase vs. y position for slice at center of beam
     bs.y_plot(bs.save_name)
-    
+    '''
     print("\nEnd.")
 
     
