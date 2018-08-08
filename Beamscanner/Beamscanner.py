@@ -84,7 +84,7 @@ class Beamscanner:
         self.LO.setPower(self.LOpow)
         self.LO.on()
         print("RF: Frequency = " + str(self.RFfreq) + " Hz, Power = " + str(self.RFpow) +
-              " dBm\nLO: Frequency =  " + str(self.LOfreq) + " Hz, Power = " + str(self.LOpow) + "dBm")        
+              " dBm\nLO: Frequency =  " + str(self.LOfreq) + " Hz, Power = " + str(self.LOpow) + " dBm")        
 
     def initMSL(self):
         # Sets MSL home positions to minimum position to synchronize between tests
