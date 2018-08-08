@@ -416,7 +416,7 @@ if __name__ == "__main__":
     # Initializes instruments
     bs.initVVM()
     bs.initMSL()
-    #bs.initSG()
+    bs.initSG()
 
     # Find center of beam to calibrate to
     bs.findCenter()
@@ -441,12 +441,11 @@ if __name__ == "__main__":
     
     # Plots position vs. amplitude contour plot via function
     bs.contour_plot(bs.save_name)
-    '''
     # Plots amplitude and phase vs. time
     bs.time_plot(bs.save_name)
     # Plots amplitude and phase vs. y position for slice at center of beam
     bs.y_plot(bs.save_name)
-    '''
+    
     print("\nEnd.")
 
     
