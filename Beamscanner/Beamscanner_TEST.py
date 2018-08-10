@@ -149,7 +149,7 @@ class Beamscanner:
     def moveToCenter(self):
         # Moves MSL's to center position and sets new home position
         self.msl_x.moveAbs(int(self.pos_x_center * self.conv_factor))
-        #self.msl_y.moveAbs(self.pos_y_center * self.conv_factor)
+        #self.msl_y.moveAbs(int(self.pos_y_center * self.conv_factor))
         self.msl_x.hold()
         #self.msl_y.hold()
         self.msl_x.setHome()
