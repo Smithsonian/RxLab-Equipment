@@ -129,8 +129,8 @@ class Beamscanner:
         
         res = 2.5
         Range = 10
-        self.pos_x_center = int(50 * self.conv_factor)
-        self.pos_y_center = int(50 * self.conv_factor)
+        self.pos_x_center = 60
+        self.pos_y_center = 60
         
         while res >= .1:
             self.setRange(Range)
@@ -148,8 +148,8 @@ class Beamscanner:
         
     def moveToCenter(self):
         # Moves MSL's to center position and sets new home position
-        self.msl_x.moveAbs(self.pos_x_center)
-        self.msl_y.moveAbs(self.pos_y_center)
+        self.msl_x.moveAbs(int(self.pos_x_center * self.conv_factor))
+        self.msl_y.moveAbs(int(self.pos_y_center * self.conv_factor))
         self.msl_x.hold()
         self.msl_y.hold()
         self.msl_x.setHome()
