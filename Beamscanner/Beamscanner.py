@@ -397,7 +397,7 @@ class Beamscanner:
         plt.show()
 
     def x_plot(self, file_name):
-        # Makes plot of amplitude & phase vs. Y-position along X = 0 plane
+        # Makes plot of amplitude & phase vs. X-position along Y = 0 plane
         x_data_all = []
         y_data_all = []
         x_data = []
