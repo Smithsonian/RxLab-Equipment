@@ -128,7 +128,7 @@ class Beamscanner:
         print("\nFinding center...")
         
         res = 2.5
-        Range = 10
+        Range = 20
         self.pos_x_center = 60
         self.pos_y_center = 60
         
@@ -305,8 +305,8 @@ class Beamscanner:
         yi = np.linspace(pos_y_min, pos_y_max, 1000)
         zi = griddata(x_data, y_data, amp_data, xi, yi, interp = "linear")
 
-        CS = plt.contour(xi, yi, zi, colors='black')
-        plt.clabel(CS, inline =1)
+        CS = plt.contour(xi, yi, zi)
+        plt.clabel(CS, inline = 1)
         plt.xlabel("X Position (mm)")
         plt.ylabel("Y Position (mm)")
         matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
@@ -395,7 +395,57 @@ class Beamscanner:
         
         fig.tight_layout()
         plt.show()
+
+    def x_plot(self, file_name):
+        # Makes plot of amplitude & phase vs. Y-position along X = 0 plane
+        x_data_all = []
+        y_data_all = []
+        x_data = []
+        amp_data_all = []
+        amp_data = []
+        phase_data_all = []    
+        phase_data = []
+
+        f = open("BeamscannerData/" + str(file_name), 'r')
+        lines = f.readlines()
+        f.close()
+        
+        for i in range(len(lines) - 1):
+            x_data_all.append(float(lines[i+1].split()[1]))
+            y_data_all.append(float(lines[i+1].split()[2]))
+            amp_data_all.append(float(lines[i+1].split()[3]))
+            phase_data_all.append(float(lines[i+1].split()[4]))
+            
+        for i in range(len(x_data_all)):
+            if int(y_data_all[i]) == 0:
+                x_data.append(x_data_all[i])
+                amp_data.append(amp_data_all[i])
+                phase_data.append(phase_data_all[i])
+            
+        fig, ax1 = plt.subplots()
     
+        x_new = np.linspace(x_data[0], x_data[-1], num=len(x_data)*10)
+    
+        coefs_amp = poly.polyfit(x_data, amp_data, 2)    
+        fit_amp = poly.polyval(x_new, coefs_amp)
+        ax1.plot(x_data, amp_data, 'bD', label = "Amp (meas)")
+        ax1.plot(x_new, fit_amp, 'b--', label = "Amp (fitted)")
+        ax1.set_xlabel("X position (mm)")
+        ax1.set_ylabel("Amplitude (dB)", color='b')
+        ax1.tick_params('y', colors='b')
+        ax1.legend(loc = "upper left")
+        
+        coefs_phase = poly.polyfit(x_data, phase_data, 2)
+        fit_phase = poly.polyval(x_new, coefs_phase)
+        ax2 = ax1.twinx()
+        ax2.plot(x_data, phase_data, 'r^', label = "Phase (meas)")
+        ax2.plot(x_new, fit_phase, 'r-', label = "Phase (fitted)")
+        ax2.set_ylabel('Phase (deg)', color='r')
+        ax2.tick_params('y', colors='r')
+        ax2.legend(loc = "upper right")
+        
+        fig.tight_layout()
+        plt.show()
 
 
 if __name__ == "__main__":
@@ -444,5 +494,7 @@ if __name__ == "__main__":
     bs.time_plot(bs.save_name)
     # Plots amplitude and phase vs. y position for slice at center of beam
     bs.y_plot(bs.save_name)
+    # Plots amplitude and phase vs. X position for slice at center of beam
+    bs.x_plot(bs.save_name)
 
     print("\nEnd.")

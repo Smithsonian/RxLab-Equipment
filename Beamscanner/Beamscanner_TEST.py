@@ -306,7 +306,7 @@ class Beamscanner:
         zi = griddata(x_data, y_data, amp_data, xi, yi, interp = "linear")
 
         CS = plt.contour(xi, yi, zi)
-        plt.clabel(CS, inline =1)
+        plt.clabel(CS, inline = 1)
         plt.xlabel("X Position (mm)")
         plt.ylabel("Y Position (mm)")
         matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
@@ -335,13 +335,13 @@ class Beamscanner:
         ax1.set_ylabel('Amplitude (dB)', color='b')
         ax1.tick_params('y', colors='b')
         plt.legend(loc = "upper left")
-        '''
+        
         ax2 = ax1.twinx()
         ax2.plot(self.time_data, phase_data, 'r^-', label = "Phase (deg)")
         ax2.set_ylabel('Phase (deg)', color='r')
         ax2.tick_params('y', colors='r')
         plt.legend(loc = "upper right")
-        '''
+        
         fig.tight_layout()
         plt.show()
     
