@@ -125,7 +125,7 @@ class Beamscanner:
         # Runs scan over area & finds maximum amplitude peak.
         # Begins at arbitrary position and decreases range and resolution with each iteration.
         
-        print("Finding center...")
+        print("\nFinding center...")
         
         res = 2.5
         Range = 10
