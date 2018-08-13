@@ -1,6 +1,6 @@
 -15.51 			!Vsweep_min (mV)
 14.98 			!Vsweep_max (mV)
-4096			!Maximum Value of DAC (12 bit = 4096)
+16384			!Maximum Value of DAC (12 bit = 4096, 14 bit = 16384)
 12000			!Scanning Rate (Hz) for A_to_D
 50.04			!Gain of the voltage channel
 0.2025			!Conversion factor for current (mA)

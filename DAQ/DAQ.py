@@ -158,5 +158,5 @@ if __name__ == "__main__":
     print(data)
     data = daq.AInScan(0,1,1000,10000,1)
     print(data)
-    daq.DOut()
+    daq.DOut(1)
     daq.disconnect()
