@@ -23,26 +23,14 @@ class IV:
         self.pm_is_connected = False
         self.reverseSweep = True
         self.settleTime = 0.1
+        self.bias = 0.0
+        self.use = "IV.use"
         
-        if len(sys.argv) >= 5:
-            self.save_name = sys.argv[1]
-            self.vmin = float(sys.argv[2])
-            self.vmax = float(sys.argv[3])
-            self.step = float(sys.argv[4])
-            if len(sys.argv) == 6:
-                self.use = sys.argv[5]
-            else:
-                self.use = "IV.use"
-        else:
-            self.save_name = input("Save name: ")
-            self.vmin = float(input("Minimum voltage [mV]: "))
-            self.vmax = float(input("Maximum voltage [mV]: "))
-            self.step = float(input("Step [mV]: "))
-            if self.step <= 0:
-                while self.step <= 0:
-                    print("Step size must be greater than 0.")
-                    self.step = float(input("Step [mV]: "))
-            self.use = "IV.use"
+        self.save_name = "iv.dat"
+        self.vmin = 0.0
+        self.vmax = 5.0
+        self.step = 0.01
+        
             
         self.Navg = 10000
         if self.vmin > self.vmax:
@@ -240,6 +228,25 @@ class IV:
     
 if __name__ == "__main__":
     test = IV()
+    
+    if len(sys.argv) >= 5:
+        test.save_name = sys.argv[1]
+        test.vmin = float(sys.argv[2])
+        test.vmax = float(sys.argv[3])
+        test.step = float(sys.argv[4])
+        if len(sys.argv) == 6:
+            test.use = sys.argv[5]
+    else:
+        test.save_name = input("Output file name: ")
+        test.vmin = float(input("Minimum voltage [mV]: "))
+        test.vmax = float(input("Maximum voltage [mV]: "))
+        test.step = float(input("Step [mV]: "))
+        if test.step <= 0:
+            while test.step <= 0:
+                print("Step size must be greater than 0.")
+                test.step = float(input("Step [mV]: "))
+
+    
     test.readFile()
     test.initDAQ()
     test.initPM()
