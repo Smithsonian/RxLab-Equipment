@@ -13,10 +13,11 @@ from time import sleep
 import time
 
 class DAQ:
-    def __init__(self):
+    def __init__(self, AiMode=AiInputMode.DIFFERENTIAL):
         self.device = None
         
         self.interface_type = InterfaceType.USB
+        self.AiMode = AiMode
         
     def listDevices(self):
         try:
@@ -59,18 +60,14 @@ class DAQ:
         # Reads input analog data from specified channel
         self.ai_device = self.daq_device.get_ai_device()
         self.ai_info = self.ai_device.get_info()
-        number_of_channels = self.ai_info.get_num_chans_by_mode(AiInputMode.SINGLE_ENDED)
-        if number_of_channels > 0:
-            input_mode = AiInputMode.SINGLE_ENDED
-        else:
-            input_mode = AiInputMode.DIFFERENTIAL
+        number_of_channels = self.ai_info.get_num_chans_by_mode(self.AiMode)
         
         if channel > number_of_channels:
             channel = number_of_channels - 1
             
-        ranges = self.ai_info.get_ranges(input_mode)
+        ranges = self.ai_info.get_ranges(self.AiMode)
         
-        data = self.ai_device.a_in(channel,input_mode,ranges[0],AInFlag.DEFAULT)
+        data = self.ai_device.a_in(channel,self.AiMode,ranges[0],AInFlag.DEFAULT)
         return data
         
     def AOut(self, data, channel = 0):

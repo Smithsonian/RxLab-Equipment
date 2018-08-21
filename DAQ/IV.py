@@ -10,7 +10,7 @@ import sys
 import os
 import time
 import visa
-from math import *
+import numpy as np
 import DAQ
 import matplotlib.pyplot as plt
 import PowerMeter as PM
@@ -20,12 +20,15 @@ import gpib
 class IV:
     def __init__(self):        
         self.PM = None
+        self.pm_is_connected = False
+        self.reverseSweep = True
+        self.settleTime = 0.1
         
         if len(sys.argv) >= 5:
             self.save_name = sys.argv[1]
             self.vmin = float(sys.argv[2])
             self.vmax = float(sys.argv[3])
-            self.step = int(sys.argv[4])
+            self.step = float(sys.argv[4])
             if len(sys.argv) == 6:
                 self.use = sys.argv[5]
             else:
@@ -63,7 +66,19 @@ class IV:
         self.V_channel = int(lines[8].split()[0])
         self.I_channel = int(lines[9].split()[0])
         # Bias range is +/- 15mV, DAQ output range is 0-5V. Voltage offset is required for Volt < 0. 
-        self.V_offset = int(lines[10].split()[0])
+        self.V_offset = float(lines[10].split()[0])
+    
+    def voltOut(self, bias):
+        """Converts bias voltage to output voltage from DAQ"""
+        return bias * self.G_v / 1000 + self.V_offset
+        
+    def biasIn(self, volt):
+        """Converts input voltage to bias voltage at device"""
+        return (volt - self.V_offset) * 1000 / self.G_v
+        
+    def currIn(self, volt):
+        """Converts input voltage from current channel to bias current at device"""
+        return (volt - self.V_offset) / self.G_i
     
     def crop(self):
         # Limits set voltages to max and min sweep voltages
@@ -99,27 +114,46 @@ class IV:
             self.pm_is_connected = False
             print("No power meter detected.\n")
     
-    def setBias(self, volt):
+    def setBias(self, bias):
+        """Sets the bias point to request value"""
+        # Converts desired bias amount [mV] to DAQ output voltage value [V]
+        self.bias = bias
+        self.volt_out = self.voltOut(self.bias)
+        
+        self.setVoltOut(self.volt_out)
+    
+    def setVoltOut(self, volt):
+        """Sets the DAC output voltage"""
         # Sets bias to specified voltage
         self.daq.AOut(volt, self.Out_channel)
-        time.sleep(.1)
+        time.sleep(self.settleTime)
+        
     
     def prepSweep(self):
-        print("Preparing for sweep...")
-        # Prepares for data collection
-        self.Vdata_rawinput = []
-        self.Idata_rawinput = []
-        self.Vdata = []
-        self.Idata = []
-        self.Biasdata = []
-        self.Pdata = []
+        # Sanity check values to make sure that requested bias range is
+        # within bias limits
         self.crop()
+        
+        print("Preparing for sweep...")
+        # Calculate sweep values
+        self.BiasPts = np.arange(self.vmin, self.vmax+self.step, self.step)
+        if self.reverseSweep:
+            self.BiasPts = np.flipud(self.BiasPts)
+        
+        # Prepares for data collection
+        self.Vdata_rawinput = np.empty_like(self.BiasPts)
+        self.Idata_rawinput = np.empty_like(self.BiasPts)
+        self.Vdata = np.empty_like(self.BiasPts)
+        self.Idata = np.empty_like(self.BiasPts)
+        self.Pdata = np.empty_like(self.BiasPts)
         # Setting voltage to max in preparation for sweep
-        print("\nChanging voltage to maximum...")
-        self.bias = self.vmax
-        # Converts desired bias amount [mV] to DAQ output voltage value [V]
-        self.volt_out = self.bias * self.G_v / 1000 + self.V_offset
-        self.setBias(self.volt_out)
+        if self.reverseSweep:
+            print("\nChanging voltage to maximum...")
+        else:
+            print("\nChanging voltage to minimum...")
+        self.bias = self.BiasPts[0]
+        self.setBias(self.bias)
+
         
     def runSweep(self):
         print("\nRunning sweep...")
@@ -128,24 +162,20 @@ class IV:
         channels = [self.V_channel, self.I_channel]
         low_channel, high_channel = min(channels), max(channels)
         
-        index = 0
-        while(self.bias > self.vmin):
-            # Converts desired bias amount [mV] to DAQ output voltage value [V]
-            self.volt_out = self.bias * self.G_v / 1000 + self.V_offset
-            self.setBias(self.volt_out)
+        for index, bias in enumerate(self.BiasPts):
+            self.setBias(bias)
             
             #Collects data from scan
             data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
             
             # Appends input voltage data
-            self.Vdata_rawinput.append(data[self.V_channel])
-            self.Idata_rawinput.append(data[self.I_channel])
+            self.Vdata_rawinput[index] = data[self.V_channel]
+            self.Idata_rawinput[index] = data[self.I_channel]
             
-            self.Biasdata.append(self.bias)
             if self.pm_is_connected == True:
                 self.Pdata.append(self.pm.getData())
                 
-            # Reformats data (Converts DAQ input voltage to correct voltage and current)
+            # Reformat data (Converts DAQ input voltage to correct voltage and current)
             self.Vdata[index] = (self.Vdata_rawinput[index] - self.V_offset) * 1000 / self.G_v 
             self.Idata[index] = (self.Idata_rawinput[index] - self.V_offset) / self.G_i
             
@@ -154,14 +184,12 @@ class IV:
                 print("BIAS: " + str(round(self.bias, 2)) + " mV")
                 print("Output voltage: " + str(round(self.volt_out,2)) + " V") 
                 
-            self.bias -= self.step
-            index += 1
-        
+            
+            
     def endSweep(self):
         # Sets bias to zero to end sweep.
         self.bias = 0
-        self.volt_out = self.bias * self.G_v / 1000 + self.V_offset
-        self.setBias(self.volt_out)
+        self.setBias(self.bias)
         print("\nBias set to zero. \nSweep is over.")
        
     def endDAQ(self):
@@ -177,7 +205,7 @@ class IV:
         print("\nWriting data to spreadsheet...")
         
         # Creates document for libre office
-        out = open("IVData/" + str(self.save_name) + ".xlsx", 'w')
+        out = open(str(self.save_name) + ".xlsx", 'w')
     
         # Writes data to spreadsheet
         if self.pm_is_connected == True:
