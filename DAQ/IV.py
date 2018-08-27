@@ -18,24 +18,25 @@ import gpib
 
 
 class IV:
-    def __init__(self, verbose=False):
+    def __init__(self, use="IV.use", verbose=False):
         self.verbose = verbose
 
         self.pm = None
-        self.pm_address = "GPIB::12::INSTR"
         self.reverseSweep = True
         self.settleTime = 0.1
-        self.bias = 0.0
+        self._bias = 0.0
         self.use = use
 
         self.save_name = "iv.dat"
         self.vmin = 0.0
         self.vmax = 5.0
-        self.step = 0.01
+        self.step = 0.05
 
-        self.Navg = 10000
         if self.vmin > self.vmax:
             self.vmin, self.vmax = self.vmax, self.vmin
+        self.readFile()
+        self.initDAQ()
+        self.initPM()
 
     def readFile(self):
         # Opens use file and assigns corresponding parameters
@@ -49,14 +50,16 @@ class IV:
         self.Vs_max = float(lines[1].split()[0])
         self.MaxDAC = float(lines[2].split()[0])
         self.Rate = int(lines[3].split()[0])
-        self.G_v = float(lines[4].split()[0])
-        self.G_i = float(lines[5].split()[0])
-        self.Boardnum = int(lines[6].split()[0])
-        self.Out_channel = int(lines[7].split()[0])
-        self.V_channel = int(lines[8].split()[0])
-        self.I_channel = int(lines[9].split()[0])
+        self.Navg = int(lines[4].split()[0])
+        self.G_v = float(lines[5].split()[0])
+        self.G_i = float(lines[6].split()[0])
+        self.Boardnum = int(lines[7].split()[0])
+        self.Out_channel = int(lines[8].split()[0])
+        self.V_channel = int(lines[9].split()[0])
+        self.I_channel = int(lines[10].split()[0])
         # Bias range is +/- 15mV, DAQ output range is 0-5V. Voltage offset is required for Volt < 0.
-        self.V_offset = float(lines[10].split()[0])
+        self.V_offset = float(lines[11].split()[0])
+        self.pm_address = lines[12].split()[0]
 
     def voltOut(self, bias):
         """Converts bias voltage to output voltage from DAQ"""
@@ -87,7 +90,7 @@ class IV:
         self.daq.listDevices()
         self.daq.connect(self.Boardnum)
 
-    def initPM(self, pm_address=self.pm_address):
+    def initPM(self, pm_address="GPIB::12::INSTR"):
         # Initializes Power Meter
         try:
             rm = visa.ResourceManager("@py")
@@ -110,11 +113,25 @@ class IV:
             if self.verbose:
                 print("Unknown Error connecting to Power Meter.\n")
 
+    def bias(self, bias):
+        """Short cut to set the bias point to <bias> mV and return the
+        resulting bias point"""
+        self.setBias(bias)
+        data = self.getData()
+        
+        if self.verbose:
+            print("New Bias Point:")
+            if len(data) == 3:
+                print("  Voltage: {:f} mV, Current: {:f} mA, IF Power: {:f} W".format(data[0], data[1], data[2]))
+            else:
+                print("  Voltage: {:f} mV, Current: {:f} mA".format(data[0], data[1]))
+        return data
+
     def setBias(self, bias):
         """Sets the bias point to request value in mV"""
         # Converts desired bias amount [mV] to DAQ output voltage value [V]
-        self.bias = bias
-        self.setVoltOut(self.voltOut(self.bias))
+        self._bias = bias
+        self.setVoltOut(self.voltOut(self._bias))
 
     def getData(self):
         """Gets V, I and P (if PM present) data, and returns it as a tuple"""
@@ -146,6 +163,12 @@ class IV:
         # Sets bias to specified voltage
         self.daq.AOut(volt, self.Out_channel)
         time.sleep(self.settleTime)
+
+    def sweep(self):
+        """Short cut to prep, run and end sweep"""
+        self.prepSweep()
+        self.runSweep()
+        self.endSweep()
 
 
     def prepSweep(self):
@@ -194,7 +217,7 @@ class IV:
 
             self.Vdata[index] = data[0]
             self.Idata[index] = data[1]
-            if self.PM != None:
+            if self.pm != None:
                 self.Pdata[index] = data[2]
             else:
                 self.Pdata[index] = 0.0
@@ -205,9 +228,9 @@ class IV:
 
     def endSweep(self):
         # Sets bias to zero to end sweep.
-        self.setBias(self.bias)
+        self.setBias(self._bias)
         if self.verbose:
-            print("Sweep is over.  Bias reset to {:.3f} mV.".format(self.bias))
+            print("Sweep is over.  Bias reset to {:.3f} mV.".format(self._bias))
 
 
     def endDAQ(self):
@@ -217,7 +240,7 @@ class IV:
 
     def endPM(self):
         # Disconnects power meter
-        if self.pm_is_connected == True:
+        if self.pm != None:
             self.pm.close()
 
     def spreadsheet(self):
@@ -250,7 +273,7 @@ class IV:
 
     def plotPV(self):
         # Plot PV curve
-        if self.pm_is_connected == True:
+        if self.pm != None:
             plt.plot(self.Vdata, self.Pdata, 'bo-' )
             plt.xlabel("Voltage (mV)")
             plt.ylabel("Power (W)")
@@ -283,14 +306,19 @@ if __name__ == "__main__":
                 print("Step size must be greater than 0.")
                 test.step = float(input("Step [mV]: "))
 
+    # Set up the IV object
     test.readFile()
     test.initDAQ()
     test.initPM()
-    test.prepSweep()
-    test.runSweep()
-    test.endSweep()
+
+    # Run a sweep
+    test.sweep()
+
+    # Close down the IV object
     test.endDAQ()
     test.endPM()
+    
+    # Output and plot data
     test.spreadsheet()
     test.plotIV()
     test.plotPV()

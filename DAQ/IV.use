@@ -1,11 +1,13 @@
--15.51 			!Vsweep_min (mV)
-14.98 			!Vsweep_max (mV)
-16384			!Maximum Value of DAC (12 bit = 4096, 14 bit = 16384)
-12000			!Scanning Rate (Hz) for A_to_D
-50.04			!Gain of the voltage channel
-0.2025			!Conversion factor for current (mA)
-0			!Boardnum
-0 			!Channel for bias voltage output (Pin 13: Analog output 0)
-0	 		!Channel for voltage input (Pin 1: Analog input 0)
-1	 		!Channel for current input (Pin 2: Analog input 1)
-0			!Voltage offset (V)
+-15.51          !Vsweep_min (mV)
+14.98           !Vsweep_max (mV)
+4096            !Maximum Value of DAC (12 bit = 4096, 14 bit = 16384)
+12000           !Scanning Rate (Hz) for A_to_D
+1000            !Number of samples to average
+50.04           !Gain of the voltage channel
+0.2025          !Conversion factor for current (mA)
+0               !Boardnum
+1               !Channel for bias voltage output (Pin 13: Analog output 0)
+0               !Channel for voltage input (Pin 1: Analog input 0)
+1               !Channel for current input (Pin 2: Analog input 1)
+1.0             !Voltage offset (V)
+GPIB::12::INSTR ! Power Meter address
