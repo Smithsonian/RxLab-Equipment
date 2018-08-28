@@ -37,6 +37,10 @@ class IV:
         self.readFile()
         self.initDAQ()
         self.initPM()
+        
+    def __delete__(self):
+        self.endDAQ()
+        self.endPM()
 
     def readFile(self):
         # Opens use file and assigns corresponding parameters
@@ -90,8 +94,11 @@ class IV:
         self.daq.listDevices()
         self.daq.connect(self.Boardnum)
 
-    def initPM(self, pm_address="GPIB::12::INSTR"):
+    def initPM(self, pm_address=None):
         # Initializes Power Meter
+        if pm_address==None:
+            pm_address = self.pm_address
+            
         try:
             rm = visa.ResourceManager("@py")
             lr = rm.list_resources()
@@ -140,7 +147,7 @@ class IV:
         low_channel, high_channel = min(channels), max(channels)
         data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
         if self.pm != None:
-            Pdata = self.pm.getData()
+            Pdata = self.pm.getData(rate="I")
         # Get the output voltage/curret data
         Vdata = self.calcV(data[self.V_channel])
         Idata = self.calcI(data[self.I_channel])
@@ -223,7 +230,7 @@ class IV:
                 self.Pdata[index] = 0.0
 
             if index%5 == 0 and self.verbose:
-                print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3f}".format(self.BiasPts[index], self.Vdata[index], self.Idata[index], self.Pdata[index]))
+                print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3g}".format(self.BiasPts[index], self.Vdata[index], self.Idata[index], self.Pdata[index]))
 
 
     def endSweep(self):
@@ -253,7 +260,7 @@ class IV:
         # Writes data to spreadsheet
         if self.pm != None:
             out.write("Voltage (mV) \tCurrent (mA) \tPower (W)\n")
-            for i in range(len(Vdata)):
+            for i in range(len(self.Vdata)):
                 out.write(str(self.Vdata[i]) + "\t" + str(self.Idata[i]) + "\t" + str(self.Pdata[i]) + "\n")
         else:
             out.write("Voltage (mV) \tCurrent (mA) \n")
@@ -279,6 +286,7 @@ class IV:
             plt.ylabel("Power (W)")
             plt.title("PV - 15mV")
             plt.axis([min(self.Vdata), max(self.Vdata), min(self.Pdata), max(self.Pdata)])
+            plt.show()
 
 
 if __name__ == "__main__":
@@ -313,14 +321,13 @@ if __name__ == "__main__":
 
     # Run a sweep
     test.sweep()
-
-    # Close down the IV object
-    test.endDAQ()
-    test.endPM()
     
     # Output and plot data
     test.spreadsheet()
     test.plotIV()
     test.plotPV()
+    
+    # Close down the IV object cleanly, releasing the DAQ and PM
+    del test
 
     print("\nEnd.")
