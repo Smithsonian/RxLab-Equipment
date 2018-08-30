@@ -260,18 +260,18 @@ class IV:
 
     def plotIV(self):
         """Plot the IV curve data on the figure"""
-        self.fig.plot(self.Vdata,self.Idata, 'ro-')
-        self.fig.xlabel("Voltage (mV)")
-        plt.ylabel("Current (mA)")
-        plt.title("IV Sweep - 15mV")
-        plt.axis([min(self.Vdata), max(self.Vdata), min(self.Idata), max(self.Idata)])
+        self.ax.plot(self.Vdata,self.Idata, 'ro-')
+        self.ax.set(xlabel="Voltage (mV)")
+        self.ax.set(ylabel="Current (mA)")
+        self.ax.set(title="IV Sweep - 15mV")
+        #self.ax.axis([min(self.Vdata), max(self.Vdata), min(self.Idata), max(self.Idata)])
 
     def plot(self):
         """Plot the acquired data from the sweep.
 
         This should be overridden to plot additional data when subclassing IV
         """
-        self.fig = plt.figure()
+        self.fig, self.ax = plt.subplots()
         self.plotIV()
         self.fig.show()
 
@@ -311,7 +311,7 @@ if __name__ == "__main__":
 
     # Output and plot data
     test.spreadsheet()
-    test.plotIV()
+    test.plot()
 
     # Close down the IV object cleanly, releasing the DAQ and PM
     del test
