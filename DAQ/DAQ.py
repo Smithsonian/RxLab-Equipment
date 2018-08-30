@@ -18,6 +18,7 @@ class DAQ:
         
         self.interface_type = InterfaceType.USB
         self.AiMode = AiMode
+        self.sleepTime = 0.1
         
     def listDevices(self):
         try:
@@ -42,6 +43,22 @@ class DAQ:
             print("\nConnected to ", descriptor.dev_string,"\n")
         except (KeyboardInterrupt, ValueError):
             print("Could not connect DAQ device.")
+        
+        # Get some basic info on the device
+        self.ai_device = self.daq_device.get_ai_device()
+        self.ai_info = self.ai_device.get_info()
+        self.numChannels()
+        
+        self.ao_device = self.daq_device.get_ao_device()
+        self.ao_info = self.ao_device.get_info()
+        
+        self.dio_device = self.daq_device.get_dio_device()
+        
+        # Get the port types for the device(AUXPORT, FIRSTPORTA, ...)
+        self.dio_info = self.dio_device.get_info()
+        self.port_types = self.dio_info.get_port_types()
+        
+        
             
     def disconnect(self, Boardnum = 0):
         # Disconnects DAQ device
@@ -55,36 +72,37 @@ class DAQ:
     def name(self, index = 0):
         name = self.device[index].product_name
         return name
+        
+    def numChannels(self):
+        """Use the SINGLE_ENDED input mode to get the number of channels.
+        # If the number of channels is greater than zero, then the device
+        # supports the SINGLE_ENDED input mode; otherwise, the device only
+        # supports the DIFFERENTIAL input mode."""
+        self.number_of_channels = self.ai_info.get_num_chans_by_mode(AiInputMode.SINGLE_ENDED)
+        if self.number_of_channels > 0:
+            if self.AiMode != AiInputMode.DIFFERENTIAL:
+                self.AiMode = AiInputMode.SINGLE_ENDED
+        else:
+            self.AiMode = AiInputMode.DIFFERENTIAL
     
     def AIn(self,channel = 0):
         # Reads input analog data from specified channel
-        self.ai_device = self.daq_device.get_ai_device()
-        self.ai_info = self.ai_device.get_info()
-        number_of_channels = self.ai_info.get_num_chans_by_mode(self.AiMode)
-        
-        if channel > number_of_channels:
-            channel = number_of_channels - 1
+        if channel > self.number_of_channels:
+            channel = self.number_of_channels - 1
             
         ranges = self.ai_info.get_ranges(self.AiMode)
         
-        data = self.ai_device.a_in(channel,self.AiMode,ranges[0],AInFlag.DEFAULT)
+        data = self.ai_device.a_in(channel, self.AiMode, ranges[0], AInFlag.DEFAULT)
         return data
         
     def AOut(self, data, channel = 0):
         # Write output analog data to specified channel
-        self.ao_device = self.daq_device.get_ao_device()
-        self.ao_info = self.ao_device.get_info()
         output_range = self.ao_info.get_ranges()[0]
         self.ao_device.a_out(channel, output_range, AOutFlag.DEFAULT, data)
         
     def DOut(self, data, channel = 0):
         # Write output digital data to specified channel
-        self.dio_device = self.daq_device.get_dio_device()
-        
-        # Get the port types for the device(AUXPORT, FIRSTPORTA, ...)
-        self.dio_info = self.dio_device.get_info()
-        port_types = self.dio_info.get_port_types()
-        self.port_to_write = port_types[0]
+        self.port_to_write = self.port_types[0]
 
         # Configure port
         self.dio_device.d_config_port(self.port_to_write, DigitalDirection.OUTPUT)
@@ -94,35 +112,23 @@ class DAQ:
     
     def AInScan(self, low_channel, high_channel, rate, samples_per_channel, scan_time = .25): 
         # Verify that the specified device supports hardware pacing for analog input.
-        self.ai_device = self.daq_device.get_ai_device()
-        self.ai_info = self.ai_device.get_info()
         if not self.ai_info.has_pacer():
             raise Exception('\nError: The specified DAQ device does not support hardware paced analog input')
-        
-        # Use the SINGLE_ENDED input mode to get the number of channels.
-        # If the number of channels is greater than zero, then the device
-        # supports the SINGLE_ENDED input mode; otherwise, the device only
-        # supports the DIFFERENTIAL input mode.
-        number_of_channels = self.ai_info.get_num_chans_by_mode(AiInputMode.SINGLE_ENDED)
-        if number_of_channels > 0:
-            input_mode = AiInputMode.SINGLE_ENDED
-        else:
-            input_mode = AiInputMode.DIFFERENTIAL
                 
         # Verify the high channel does not exceed the number of channels, and
         # set the channel count.
-        if high_channel >= number_of_channels:
-            high_channel = number_of_channels - 1
+        if high_channel >= self.number_of_channels:
+            high_channel = self.number_of_channels - 1
         channel_count = high_channel - low_channel + 1
         
         # Get a list of supported analog input ranges.
-        ranges = self.ai_info.get_ranges(input_mode)
+        ranges = self.ai_info.get_ranges(self.AiMode)
                 
         # Allocate a buffer to receive the data.
         data = create_float_buffer(channel_count, samples_per_channel)
         
         # Start the acquisition.
-        rate = self.ai_device.a_in_scan(low_channel, high_channel, input_mode, ranges[0], samples_per_channel,
+        rate = self.ai_device.a_in_scan(low_channel, high_channel, self.AiMode, ranges[0], samples_per_channel,
                                         rate, ScanOption.CONTINUOUS, AInScanFlag.DEFAULT, data)
         
         start_time = time.time()
@@ -137,7 +143,7 @@ class DAQ:
             # Display the data.
             for i in range(channel_count):
                 d[i+low_channel] = data[index + i]
-            sleep(0.1)          
+            sleep(self.sleepTime)          
 
         if self.daq_device:
             # Stop the acquisition if it is still running.

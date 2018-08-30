@@ -1,1 +1,4 @@
 Applications
+*.dat
+*.xlsx
+*__pycache__*

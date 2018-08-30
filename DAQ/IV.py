@@ -67,26 +67,21 @@ class IV:
         self.MaxDAC = float(self._use_lines[2].split()[0])
         self.Rate = int(self._use_lines[3].split()[0])
         self.Navg = int(self._use_lines[4].split()[0])
-        self.G_v = float(self._use_lines[5].split()[0])
-        self.G_i = float(self._use_lines[6].split()[0])
-        self.Boardnum = int(self._use_lines[7].split()[0])
-        self.Out_channel = int(self._use_lines[8].split()[0])
-        self.V_channel = int(self._use_lines[9].split()[0])
-        self.I_channel = int(self._use_lines[10].split()[0])
+        self.G_vOut = float(self._use_lines[5].split()[0])
+        self.G_v = float(self._use_lines[6].split()[0])
+        self.G_i = float(self._use_lines[7].split()[0])
+        self.Boardnum = int(self._use_lines[8].split()[0])
+        self.Out_channel = int(self._use_lines[9].split()[0])
+        self.V_channel = int(self._use_lines[10].split()[0])
+        self.I_channel = int(self._use_lines[11].split()[0])
         # Bias range is +/- 15mV, DAQ output range is 0-5V. Voltage offset is required for Volt < 0.
-        self.V_offset = float(self._use_lines[11].split()[0])
+        self.offset_vOut = float(self._use_lines[12].split()[0])
+        self.offset_vIn = float(self._use_lines[13].split()[0])
+        self.offset_iIn = float(self._use_lines[14].split()[0])
 
     def voltOut(self, bias):
         """Converts bias voltage to output voltage from DAQ"""
-        return bias * self.G_v / 1000 + self.V_offset
-
-    def biasIn(self, volt):
-        """Converts input voltage to bias voltage at device"""
-        return (volt - self.V_offset) * 1000 / self.G_v
-
-    def currIn(self, volt):
-        """Converts input voltage from current channel to bias current at device"""
-        return (volt - self.V_offset) / self.G_i
+        return bias * self.G_vOut + self.offset_vOut
 
     def crop(self):
         # Limits set voltages to max and min sweep voltages
@@ -143,11 +138,11 @@ class IV:
 
     def calcV(self, volts):
         """Converts ADC reading in volts to bias voltage in mV"""
-        return (volts - self.V_offset) * 1000 / self.G_v
+        return (volts - self.offset_vIn) * 1000 / self.G_v
 
     def calcI(self, volts):
         """Converts ADC reading in volts to bias current in mA"""
-        return (volts - self.V_offset) / self.G_i
+        return (volts - self.offset_iIn) / self.G_i
 
     def setVoltOut(self, volt):
         """Sets the DAC output voltage and waits to settle"""
