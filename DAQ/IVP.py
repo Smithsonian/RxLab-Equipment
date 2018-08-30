@@ -1,13 +1,9 @@
 ##################################################
 #                                                #
-# IV testing                                     #
+# IV testing with Power Meter                                     #
 #                                                #
 # Larry Gardner, July 2018                       #
 # Paul Grimes, August 2018                       #
-# Edited Aug 2018 to remove power meter code.    #
-# Aim is to have simple IV code that can be      #
-# subclassed to produce more complex sweep       #
-# code                                           #
 ##################################################
 
 import sys
@@ -17,9 +13,11 @@ import visa
 import numpy as np
 import DAQ
 import matplotlib.pyplot as plt
+import PowerMeter as PM
+import gpib
 
 
-class IV:
+class IVP:
     def __init__(self, use="IV.use", verbose=False):
         self.verbose = verbose
 
@@ -38,10 +36,11 @@ class IV:
             self.vmin, self.vmax = self.vmax, self.vmin
         self.readFile()
         self.initDAQ()
+        self.initPM()
 
     def __delete__(self):
         self.endDAQ()
-
+        self.endPM()
 
     def readFile(self):
         # Opens use file and assigns corresponding parameters
@@ -64,6 +63,7 @@ class IV:
         self.I_channel = int(lines[10].split()[0])
         # Bias range is +/- 15mV, DAQ output range is 0-5V. Voltage offset is required for Volt < 0.
         self.V_offset = float(lines[11].split()[0])
+        self.pm_address = lines[12].split()[0]
 
     def voltOut(self, bias):
         """Converts bias voltage to output voltage from DAQ"""
@@ -94,6 +94,32 @@ class IV:
         self.daq.listDevices()
         self.daq.connect(self.Boardnum)
 
+    def initPM(self, pm_address=None):
+        # Initializes Power Meter
+        if pm_address==None:
+            pm_address = self.pm_address
+
+        try:
+            rm = visa.ResourceManager("@py")
+            lr = rm.list_resources()
+            if pm_address in lr:
+                self.pm = PM.PowerMeter(rm.open_resource(pm_address))
+                self.pm_address = pm_address
+                if self.verbose:
+                    print("Power Meter connected.\n")
+            else:
+                self.pm = None
+                if self.verbose:
+                    print("No Power Meter detected.\n")
+        except gpib.GpibError:
+            self.pm = None
+            if self.verbose:
+                print("GPIB Error connecting to Power Meter.\n")
+        except:
+            self.pm = None
+            if self.verbose:
+                print("Unknown Error connecting to Power Meter.\n")
+
     def bias(self, bias):
         """Short cut to set the bias point to <bias> mV and return the
         resulting bias point"""
@@ -101,8 +127,11 @@ class IV:
         data = self.getData()
 
         if self.verbose:
-            print("New Bias Point: {:.4g} mV".format(bias))
-            print("  Voltage: {:.4g} mV, Current: {:.4g} mA".format(data[0], data[1]))
+            print("New Bias Point:")
+            if len(data) == 3:
+                print("  Voltage: {:f} mV, Current: {:f} mA, IF Power: {:f} W".format(data[0], data[1], data[2]))
+            else:
+                print("  Voltage: {:f} mV, Current: {:f} mA".format(data[0], data[1]))
         return data
 
     def setBias(self, bias):
@@ -117,11 +146,16 @@ class IV:
         channels = [self.V_channel, self.I_channel]
         low_channel, high_channel = min(channels), max(channels)
         data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
+        if self.pm != None:
+            Pdata = self.pm.getData(rate="I")
         # Get the output voltage/curret data
         Vdata = self.calcV(data[self.V_channel])
         Idata = self.calcI(data[self.I_channel])
 
-        return Vdata, Idata
+        if self.pm != None:
+            return Vdata, Idata, Pdata
+        else:
+            return Vdata, Idata
 
     def calcV(self, volts):
         """Converts ADC reading in volts to bias voltage in mV"""
@@ -158,6 +192,7 @@ class IV:
         # Prepares for data collection
         self.Vdata = np.empty_like(self.BiasPts)
         self.Idata = np.empty_like(self.BiasPts)
+        self.Pdata = np.empty_like(self.BiasPts)
 
         # Setting voltage to max in preparation for sweep
         if self.reverseSweep:
@@ -179,7 +214,7 @@ class IV:
         low_channel, high_channel = min(channels), max(channels)
 
         if self.verbose:
-            print("\tBias (mV)\tVoltage (mV)\tCurrent (mA)")
+            print("\tBias (mV)\tVoltage (mV)\tCurrent (mA)\tIF Power")
 
         for index, bias in enumerate(self.BiasPts):
             self.setVoltOut(self.voltOut(bias))
@@ -189,9 +224,13 @@ class IV:
 
             self.Vdata[index] = data[0]
             self.Idata[index] = data[1]
+            if self.pm != None:
+                self.Pdata[index] = data[2]
+            else:
+                self.Pdata[index] = 0.0
 
             if index%5 == 0 and self.verbose:
-                print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}".format(self.BiasPts[index], self.Vdata[index], self.Idata[index]))
+                print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3g}".format(self.BiasPts[index], self.Vdata[index], self.Idata[index], self.Pdata[index]))
 
 
     def endSweep(self):
@@ -206,16 +245,28 @@ class IV:
         self.daq.disconnect(self.Boardnum)
 
 
+    def endPM(self):
+        # Disconnects power meter
+        if self.pm != None:
+            self.pm.close()
+
     def spreadsheet(self):
         if self.verbose:
             print("\nWriting data to spreadsheet...")
 
-        out = open(str(self.save_name), 'w')
+        # Creates document for libre office
+        out = open(str(self.save_name) + ".xlsx", 'w')
 
         # Writes data to spreadsheet
-        out.write("Bias (mV)\t\tVoltage (mV)\t\tCurrent (mA)\n")
-        for i in range(len(self.Vdata)):
-            out.write("{:.6g},\t{:.6g},\t{:.6g}\n".format(self.BiasPts[i], self.Vdata[i], self.Idata[i]))
+        if self.pm != None:
+            out.write("Voltage (mV) \tCurrent (mA) \tPower (W)\n")
+            for i in range(len(self.Vdata)):
+                out.write(str(self.Vdata[i]) + "\t" + str(self.Idata[i]) + "\t" + str(self.Pdata[i]) + "\n")
+        else:
+            out.write("Voltage (mV) \tCurrent (mA) \n")
+            for i in range(len(self.Vdata)):
+                out.write(str(self.Vdata[i]) + "\t" + str(self.Idata[i]) + "\n")
+
         out.close()
 
     def plotIV(self):
@@ -227,6 +278,16 @@ class IV:
         plt.axis([min(self.Vdata), max(self.Vdata), min(self.Idata), max(self.Idata)])
         plt.show()
 
+    def plotPV(self):
+        # Plot PV curve
+        if self.pm != None:
+            plt.plot(self.Vdata, self.Pdata, 'bo-' )
+            plt.xlabel("Voltage (mV)")
+            plt.ylabel("Power (W)")
+            plt.title("PV - 15mV")
+            plt.axis([min(self.Vdata), max(self.Vdata), min(self.Pdata), max(self.Pdata)])
+            plt.show()
+
 
 if __name__ == "__main__":
     # This code runs a sweep from <vmax> to <vmin> with stepsize <step> and
@@ -234,7 +295,7 @@ if __name__ == "__main__":
     #
     # Usage: python3 <file.dat> <vmin> <vmax> <step> <*use file>
 
-    test = IV(verbose=True)
+    test = IVP(verbose=True)
 
     if len(sys.argv) >= 5:
         test.save_name = sys.argv[1]
@@ -256,6 +317,7 @@ if __name__ == "__main__":
     # Set up the IV object
     test.readFile()
     test.initDAQ()
+    test.initPM()
 
     # Run a sweep
     test.sweep()
@@ -263,6 +325,7 @@ if __name__ == "__main__":
     # Output and plot data
     test.spreadsheet()
     test.plotIV()
+    test.plotPV()
 
     # Close down the IV object cleanly, releasing the DAQ and PM
     del test
