@@ -27,7 +27,7 @@ class IV:
 
         self.pm = None
         self.reverseSweep = True
-        self.settleTime = 0.1
+        self.settleTime = 0.01
         self._bias = 0.0
         self.use = use
 
@@ -74,10 +74,11 @@ class IV:
         self.Out_channel = int(self._use_lines[9].split()[0])
         self.V_channel = int(self._use_lines[10].split()[0])
         self.I_channel = int(self._use_lines[11].split()[0])
+        self.AiRange = int(self._use_lines[12].split()[0])
         # Bias range is +/- 15mV, DAQ output range is 0-5V. Voltage offset is required for Volt < 0.
-        self.offset_vOut = float(self._use_lines[12].split()[0])
-        self.offset_vIn = float(self._use_lines[13].split()[0])
-        self.offset_iIn = float(self._use_lines[14].split()[0])
+        self.offset_vOut = float(self._use_lines[13].split()[0])
+        self.offset_vIn = float(self._use_lines[14].split()[0])
+        self.offset_iIn = float(self._use_lines[15].split()[0])
 
     def voltOut(self, bias):
         """Converts bias voltage to output voltage from DAQ"""
@@ -95,10 +96,11 @@ class IV:
             self.vmax = self.Vs_max
 
     def initDAQ(self):
-        """Lists available DAQ devices and connects the selected board"""
+        """Lists available DAQ devices, connects the selected board and sets the AI Range"""
         self.daq = DAQ.DAQ()
         self.daq.listDevices()
         self.daq.connect(self.Boardnum)
+        self.daq.setAiRange(self.AiRange)
 
 
     def bias(self, bias):
@@ -122,19 +124,27 @@ class IV:
         self.setVoltOut(self.voltOut(self._bias))
 
     def getData(self):
-        """Gets V, I and P (if PM present) data, and returns it as a tuple
+        """Gets V and I data, and returns it as a tuple
 
         This should be overidden when subclassing IV.py to to get any additional
         data required"""
-        # Sets proper format for low and high channels to scan over
-        channels = [self.V_channel, self.I_channel]
-        low_channel, high_channel = min(channels), max(channels)
-        data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
-        # Get the output voltage/curret data
+        
+        data = self.getRawData()
+        
+        # Get the output voltage/current data
         Vdata = self.calcV(data[self.V_channel])
         Idata = self.calcI(data[self.I_channel])
 
         return Vdata, Idata
+        
+    def getRawData(self):
+        """Gets the voltages from the DAQ"""
+        # Sets proper format for low and high channels to scan over
+        channels = [self.V_channel, self.I_channel]
+        low_channel, high_channel = min(channels), max(channels)
+        data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
+        return np.mean(data[:, self.V_channel]), np.mean(data[:, self.I_channel])
+        
 
     def calcV(self, volts):
         """Converts ADC reading in volts to bias voltage in mV"""
@@ -255,17 +265,20 @@ class IV:
 
     def plotIV(self):
         """Plot the IV curve data on the figure"""
-        self.ax.plot(self.Vdata,self.Idata, 'ro-')
+        self.ax.plot(self.Vdata, self.Idata, 'r-')
         self.ax.set(xlabel="Voltage (mV)")
         self.ax.set(ylabel="Current (mA)")
         self.ax.set(title="IV Sweep - 15mV")
+        self.ax.grid()
         #self.ax.axis([min(self.Vdata), max(self.Vdata), min(self.Idata), max(self.Idata)])
 
-    def plot(self):
+    def plot(self, ion=True):
         """Plot the acquired data from the sweep.
 
         This should be overridden to plot additional data when subclassing IV
         """
+        if ion:
+            plt.ion()
         self.fig, self.ax = plt.subplots()
         self.plotIV()
         self.fig.show()
@@ -306,7 +319,11 @@ if __name__ == "__main__":
 
     # Output and plot data
     test.spreadsheet()
+    plt.ion()
     test.plot()
+    # Wait until the plot is done
+    input("Press [enter] to continue.")
+
 
     # Close down the IV object cleanly, releasing the DAQ and PM
     del test

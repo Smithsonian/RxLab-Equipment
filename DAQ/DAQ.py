@@ -10,6 +10,7 @@ from uldaq import *
 from os import system
 from sys import stdout
 from time import sleep
+import numpy as np
 import time
 
 class DAQ:
@@ -18,7 +19,8 @@ class DAQ:
         
         self.interface_type = InterfaceType.USB
         self.AiMode = AiMode
-        self.sleepTime = 0.1
+        self.AiRange = 0
+        self.sleepTime = 0.01
         
     def listDevices(self):
         try:
@@ -26,9 +28,9 @@ class DAQ:
             self.number_of_devices = len(self.device)
             if self.number_of_devices == 0:
                 raise Exception('Error: No DAQ devices found')
-            print("\nFound " + str(self.number_of_devices) + " DAQ device(s): ")
+            print("Found {:d} DAQ device(s): ".format(self.number_of_devices))
             for i in range(self.number_of_devices):
-                print("    ",self.device[i].product_name, " (", self.device[i].unique_id, ")", sep="")
+                print("    {:s} ({:s})".format(self.device[i].product_name, self.device[i].unique_id))
         except (KeyboardInterrupt, ValueError):
             print("Could not find DAQ device(s).")
         
@@ -40,7 +42,7 @@ class DAQ:
             # Connect to DAQ device
             descriptor = self.daq_device.get_descriptor()
             self.daq_device.connect()
-            print("\nConnected to ", descriptor.dev_string,"\n")
+            print("Connected to {:s}".format(descriptor.dev_string))
         except (KeyboardInterrupt, ValueError):
             print("Could not connect DAQ device.")
         
@@ -59,14 +61,13 @@ class DAQ:
         self.port_types = self.dio_info.get_port_types()
         
         
-            
     def disconnect(self, Boardnum = 0):
         # Disconnects DAQ device
         if self.daq_device:
             if self.daq_device.is_connected():
                 self.daq_device.disconnect()
-                print("\nDAQ device", self.device[Boardnum].product_name, "is disconnected.")
-            print("DAQ device", self.device[Boardnum].product_name, "is released.")
+                print("DAQ device {:s} is disconnected.".format(self.device[Boardnum].product_name))
+            print("DAQ device {:s}".format(self.device[Boardnum].product_name))
             self.daq_device.release()
             
     def name(self, index = 0):
@@ -85,6 +86,21 @@ class DAQ:
         else:
             self.AiMode = AiInputMode.DIFFERENTIAL
     
+    def setAiRange(self, r):
+        """Sets the AI Range to the index r in the list of ranges returned by self.AiInfo.get_ranges(self.AiMode)"""
+        ranges = self.getAiRanges()
+        if r < len(ranges):
+            self.AiRange = ranges[r]
+            
+    def getAiRangeIndex(self):
+        """Returns the index of the current AiRange in the list of self.AiInfo.get_ranges(self.AiMode)"""
+        ranges = self.getAiRanges()
+        return ranges.index(self.AiRange)
+        
+    def getAiRanges(self):
+        """Returns the list of valid ranges for this DAQ"""
+        return self.ai_info.get_ranges(self.AiMode)
+    
     def AIn(self,channel = 0):
         # Reads input analog data from specified channel
         if channel > self.number_of_channels:
@@ -92,7 +108,7 @@ class DAQ:
             
         ranges = self.ai_info.get_ranges(self.AiMode)
         
-        data = self.ai_device.a_in(channel, self.AiMode, ranges[0], AInFlag.DEFAULT)
+        data = self.ai_device.a_in(channel, self.AiMode, self.AiRange, AInFlag.DEFAULT)
         return data
         
     def AOut(self, data, channel = 0):
@@ -110,10 +126,12 @@ class DAQ:
         # Writes output for bit
         self.dio_device.d_bit_out(self.port_to_write, channel, data)
     
-    def AInScan(self, low_channel, high_channel, rate, samples_per_channel, scan_time = .25): 
+    def AInScan(self, low_channel, high_channel, rate, samples_per_channel, scan_time = None):
+        """Runs a scan across multiple channels, with multiple samples per channel.  Returns a numpy array of
+        shape (samples_per_channel, channel_count)"""
         # Verify that the specified device supports hardware pacing for analog input.
         if not self.ai_info.has_pacer():
-            raise Exception('\nError: The specified DAQ device does not support hardware paced analog input')
+            raise Exception('Error: The specified DAQ device does not support hardware paced analog input')
                 
         # Verify the high channel does not exceed the number of channels, and
         # set the channel count.
@@ -121,34 +139,37 @@ class DAQ:
             high_channel = self.number_of_channels - 1
         channel_count = high_channel - low_channel + 1
         
-        # Get a list of supported analog input ranges.
-        ranges = self.ai_info.get_ranges(self.AiMode)
-                
         # Allocate a buffer to receive the data.
         data = create_float_buffer(channel_count, samples_per_channel)
         
         # Start the acquisition.
-        rate = self.ai_device.a_in_scan(low_channel, high_channel, self.AiMode, ranges[0], samples_per_channel,
+        self.ai_device.a_in_scan(low_channel, high_channel, self.AiMode, self.AiRange, samples_per_channel,
                                         rate, ScanOption.CONTINUOUS, AInScanFlag.DEFAULT, data)
         
         start_time = time.time()
         
-        d = {}
+        # Set scan time to a high number of seconds if it isn't set
+        if scan_time == None:
+            scan_time = 500000
         
         while (time.time() - start_time) <= scan_time:
             # Get the status of the background operation
             status, transfer_status = self.ai_device.get_scan_status()
             index = transfer_status.current_index
 
-            # Display the data.
-            for i in range(channel_count):
-                d[i+low_channel] = data[index + i]
-            sleep(self.sleepTime)          
+            # Check to see if we are done
+            if transfer_status.current_scan_count >= samples_per_channel:
+                break
 
+            sleep(self.sleepTime)          
+        
         if self.daq_device:
             # Stop the acquisition if it is still running.
             if status == ScanStatus.RUNNING:
                 self.ai_device.scan_stop()                
+        
+        d = np.array(data)
+        d = d.reshape((samples_per_channel, channel_count))
         
         return d
     
@@ -157,9 +178,10 @@ if __name__ == "__main__":
     daq = DAQ()
     daq.listDevices()
     daq.connect()
+    daq.setAiRange(5)
     data = daq.AIn(0)
     print(data)
-    data = daq.AInScan(0,1,1000,10000,1)
+    data = daq.AInScan(0,1,10000,1000,1)
     print(data)
     daq.DOut(1)
     daq.disconnect()
