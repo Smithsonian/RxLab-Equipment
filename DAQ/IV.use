@@ -1,6 +1,6 @@
--15.2           !Vsweep_min (mV)
+-15.2            !Vsweep_min (mV)
 14.34            !Vsweep_max (mV)
-5000             !Maximum Value of DAC (12 bit = 4096, 14 bit = 16384)
+5                !Maximum Value of DAC in Volts
 24000            !Scanning Rate (Hz) for A_to_D
 2000             !Number of samples to average
 -0.1396          !Gain of the voltage output channel
@@ -11,7 +11,7 @@
 0                !Channel for voltage input (Pin 1: Analog input 0)
 1                !Channel for current input (Pin 2: Analog input 1)
 5                !Range for differential inputs - index in daq.get_ai_info.get_ranges(mode)
-1.991            !Output Voltage offset (V)
-0.0              !Input Voltage offset (V)
+2.003            !Output Voltage offset (V)
+0.0008            !Input Voltage offset (V)
 0.0              !Input Current offset (V)
 GPIB0::13::INSTR ! Power Meter address

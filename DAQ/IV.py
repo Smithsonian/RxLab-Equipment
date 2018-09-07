@@ -156,6 +156,15 @@ class IV:
 
     def setVoltOut(self, volt):
         """Sets the DAC output voltage and waits to settle"""
+        if volt > self.MaxDAC:
+            if self.verbose:
+                print("DAC Maximum output voltage of {:.2f} exceeded - clipping to max".format(self.MaxDAC))
+            volt = self.MaxDAC
+        if volt < 0.0:
+            if self.verbose:
+                print("DAC Minimum output voltage of 0.00 V exceeded - clipping to min")
+            volt = 0.0
+            
         # Sets bias to specified voltage
         self.daq.AOut(volt, self.Out_channel)
         time.sleep(self.settleTime)
@@ -268,7 +277,7 @@ class IV:
         self.ax.plot(self.Vdata, self.Idata, 'r-')
         self.ax.set(xlabel="Voltage (mV)")
         self.ax.set(ylabel="Current (mA)")
-        self.ax.set(title="IV Sweep - 15mV")
+        self.ax.set(title="IV Sweep")
         self.ax.grid()
         #self.ax.axis([min(self.Vdata), max(self.Vdata), min(self.Idata), max(self.Idata)])
 
@@ -325,7 +334,7 @@ if __name__ == "__main__":
     input("Press [enter] to continue.")
 
 
-    # Close down the IV object cleanly, releasing the DAQ and PM
+    # Close down the IV object cleanly, releasing the DAQ
     del test
 
     print("\nEnd.")
