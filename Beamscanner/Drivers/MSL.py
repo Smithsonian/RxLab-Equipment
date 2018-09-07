@@ -1,17 +1,39 @@
+# MSL.py
+#
+# Driver code from Newmark MDrive MSL linear slide
+#
+#  - Lawrence Gardner, Aug 2018
+#  - Paul Grimes, Oct 2018
+#
+
+
 import Instrument
 
 class MSL(Instrument.Instrument):
     ''' Class for communicating with a Newmark Systems MSL Linear Stage
         with MDrive Motor'''
     
-    def __init__(self, resource, strict=False):
+    def __init__(self, resource, partyName=None, strict=False):
         
         super().__init__(resource)
         
-        'Turns off echo for each command'
-        self.write("EM = 2")
         self.resource.read_termination = '\r\n'
-        self.resource.write_termination = '\r' 
+        
+        if partyName == None:
+            self.resource.write_termination = '\r' 
+            self.prefix = ""
+        else:
+            self.resource.write_termination = '\n' 
+            self.prefix = partyName + " "
+        
+        # Turns off echo for each command
+        self.write("EM = 2")
+            
+    def write(self, cmd):
+        super().write(self.prefix+cmd)
+        
+    def query(self, cmd):
+        return super().query(self.prefix+cmd)
 
     def setVelInit(self, vel):
         'Set Initial Velocity'
@@ -23,17 +45,17 @@ class MSL(Instrument.Instrument):
     
     def getVelInit(self):
         'Returns Initial Velocity'
-        self.VelInit = self.query("PR VI")
+        self.VelInit = int(self.query("PR VI"))
         return self.VelInit
     
     def getVelMax(self):
         'Returns Max Velocity'
-        self.VelMax = self.query("PR VM")
+        self.VelMax = int(self.query("PR VM"))
         return self.VelMax
     
     def getVel(self):
         'Returns current velocity'
-        self.velocity = self.query("PR V")
+        self.velocity = int(self.query("PR V"))
         return self.velocity
     
     def setAccel(self, acl):
@@ -46,7 +68,7 @@ class MSL(Instrument.Instrument):
         
     def getAccel(self):
         'Returns acceleration'
-        self.accel = self.query("PR A")
+        self.accel = int(self.query("PR A"))
         return self.accel
         
     def getParam(self):
@@ -68,7 +90,7 @@ class MSL(Instrument.Instrument):
 
     def getPos(self):
         'Returns position relative to 0'
-        self.position = self.query("PR P")
+        self.position = int(self.query("PR P"))
         return self.position
             
     def isMoving(self):
@@ -84,7 +106,7 @@ class MSL(Instrument.Instrument):
         'Makes the minimum position the home'
         self.moveAbs(-550000)
         self.hold()
-        while self.getPos() != '0':
+        while self.getPos() != 0:
             self.setHome()
         
     def calibrate(self):

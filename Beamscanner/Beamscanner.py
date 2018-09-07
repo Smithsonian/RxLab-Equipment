@@ -460,8 +460,8 @@ if __name__ == "__main__":
     bs.vvm = HP8508A.HP8508A(rm.open_resource("GPIB0::8::INSTR"))
     bs.RF = HMCT2240.HMCT2240(rm.open_resource("GPIB0::30::INSTR"))
     bs.LO = HMCT2240.HMCT2240(rm.open_resource("GPIB0::23::INSTR"))
-    bs.msl_x = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0"))
-    bs.msl_y = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB1"))
+    bs.msl_x = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0"), partyName="X")
+    bs.msl_y = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0"), partyName="Y")
     
     # Initializes instruments
     bs.initVVM()
