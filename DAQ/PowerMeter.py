@@ -17,12 +17,12 @@ class PowerMeter(Instrument.Instrument):
         
         self._ranges = list(" IJKLM")
         self._modes = { "A":"Watts", "B":"dB Relative", "C": "dB Ref", "D":"dBm"}
-        self._statuses = {"P":"Data Valid", "Q":"Watts, under range", "R":"Over range", "S":"dB, under range", "T":"Auto zero under range, 1", "U":"Auto zero under range, 2-5", "V":"Auto zero over range"}        
+        self._statuses = {"P":"Data Valid", "Q":"Watts, Under Range", "R":"Over Range", "S":"dB, Under Range", "T":"Auto Zero Under Range, 1", "U":"Auto Zero Under Range, 2-5", "V":"Auto Zero Over Range"}        
         
         
-    def getDataStr(self, range="9", mode="A", cal_factor="+", rate="V"):
-        """Get data str from power meter using <range> <mode> and <rate>"""
-        # Range is one of :
+    def getDataStr(self, pmrange="9", mode="A", cal_factor="+", rate="T"):
+        """Get data str from power meter using <pmrange> <mode> and <rate>"""
+        # pmrange is one of :
         #   1-5 : Most to least sensitive
         #   9   : Auto
         #
@@ -43,27 +43,32 @@ class PowerMeter(Instrument.Instrument):
         #   R : Free-run at maximum rate
         #   V : Free-run with settling timeout
         
-        return self.resource.query("{}{}{}{}".format(range, mode, cal_factor, rate))
+        self.resource.write("{}{}{}{}".format(pmrange, mode, cal_factor, rate))
+        datastr = self.resource.read_bytes(14).decode('ascii')
+        # Do this to flush the buffer
+        if rate == "R" or rate == "V":
+            self.resource.read()
+        return datastr
         
     def unpackDataStr(self, dataStr):
         """Unpack the data string, returning the value in whatever mode we're in"""
         self.status = self._statuses[dataStr[0]]
         # Status is one of:
         #   P - Measured value valid
-        #   Q - Watts mode under range
-        #   R - Over range
-        #   S - Under range dBm or dB (rel) mode
+        #   Q - Watts mode under Range
+        #   R - Over Range
+        #   S - Under pmrange dBm or dB (rel) mode
         #   T - Power Sensor Auto Zero Loop Enabled; Range 1
-        #           Under range: (normal for auto zeroing on Range 1)
+        #           Under Range: (normal for auto zeroing on Range 1)
         #   U - Power Sensor Auto Zero Loop Enabled; Range !=1
-        #           Under range: (normal for auto zeroing on Range 2-5)
+        #           Under Range: (normal for auto zeroing on Range 2-5)
         #   V - Power Sensor Auto Zero Loop Enabled; Over Range
                     
         # Range is one of:
-        #   I-M, range 1-5
+        #   I-M, Range 1-5
         #
         # Convert to numerical range
-        self.range = self._ranges.index(dataStr[1])
+        self.pmrange = self._ranges.index(dataStr[1])
         
         
         self.mode = self._modes[dataStr[2]]
@@ -81,13 +86,16 @@ class PowerMeter(Instrument.Instrument):
         else:
             raise ValueError("Got wrong sign character from Power Meter - {}".format(sign))
             
-        value = s*float(dataStr[3:12])
+        value = s*float(dataStr[4:12])
         
         return value
         
-    def getData(self, range="9", mode="A", cal_factor="+", rate="V"):
+    def getData(self, pmrange="9", mode="A", cal_factor="+", rate="T"):
         """Return the power as a float, and set the properties of the PowerMeter
         object to describe the status and what the measurement represents
+        
+        In Rate R or V, the system will read until the timeout, and then
+        return the first value only.
         
         Range is one of :
           1-5 : Most to least sensitive
@@ -110,16 +118,16 @@ class PowerMeter(Instrument.Instrument):
           R : Free-run at maximum rate
           V : Free-run with settling timeout
         """
-        dataStr = self.getDataStr(range, mode, cal_factor, rate)
+        dataStr = self.getDataStr(pmrange, mode, cal_factor, rate)
         data = self.unpackDataStr(dataStr)
         return data
         
 if __name__ == "__main__":
     import visa
-    rm = visa.ResourceManager()
-    res = rm.open_resource("GPIB0::12::INSTR")
+    rm = visa.ResourceManager('@py')
+    res = rm.open_resource("GPIB0::13::INSTR")
     pm = PowerMeter(res)
     
     print("Power : {:g} {:s}".format(pm.getData(), pm.mode))
-    print("Range : {:d}".format(pm.range))
+    print("Range : {:d}".format(pm.pmrange))
     print("Status: {:s}".format(pm.status))
