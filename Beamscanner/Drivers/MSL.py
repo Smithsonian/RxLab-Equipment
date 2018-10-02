@@ -119,4 +119,15 @@ class MSL(Instrument.Instrument):
         self.read()
         'Turns off echo for each command'
         self.write("EM = 2")
+
+
+if __name__ == "__main__":
+    import visa
     
+    # Run test code
+    rm = visa.ResourceManager('@py')
+    m = MSL(rm.open_resource("ASRL/dev/ttyUSB0", partyName="X"))
+    print("Set up MSL Translation stage on {}".format(MSL.resource.resource_name)
+    
+    print("Current Position: {:d}".format(m.getPos()))
+
