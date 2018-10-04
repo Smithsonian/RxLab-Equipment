@@ -58,11 +58,22 @@ class Beamscanner:
         self.conv_factor = int(lines[9].split()[0])
         
     def initGPIB(self):
-        # Configures GPIB upon new bus entry
-        os.system("sudo gpib_config")
+        """Initialize PyVisa and check it's working.
+        
+        "no langid" errors are likely a permissions issue - make sure the current user
+        has access to usb port and that linux-gpib is configure with gpib-config --minor=0.
+        
+        This can be done automatically at boot with udev rules
+        
+        see http://askubuntu.com/questions/705409/udev-rule-to-run-gpib-config and
+        https://github.com/pyvisa/pyvisa/issues/212
+        """
         # Lists available resources
         rm = visa.ResourceManager('@py')
-        lr = rm.list_resources()
+        try:
+            lr = rm.list_resources()
+        except ValueError:
+            print("pyvisa list_resources failed - likely you have a permissions issue.  See Beamscanner.py Beamscanner.initGPIB() source for solutions")
         print("GPIB devices configured. \nAvailable Resources: "+str(lr))
         return rm
     
@@ -127,10 +138,10 @@ class Beamscanner:
         
         print("\nFinding center...")
         
-        res = 2.5
-        Range = 20
-        self.pos_x_center = 60
-        self.pos_y_center = 60
+        res = 8
+        Range = 80
+        self.pos_x_center = 50
+        self.pos_y_center = 50
         
         while res >= .1:
             self.setRange(Range)
@@ -141,8 +152,8 @@ class Beamscanner:
             self.scan(res)
             self.findMaxPos()
             
-            Range = res * 2
-            res = Range / 5
+            Range = Range / 5
+            res = Range / 10
 
         print("\n")
         
@@ -189,13 +200,22 @@ class Beamscanner:
                     # Collects VVM and position data
                     self.time_data.append(time.time())
                     # Gets transmissions from VVM and loops in case of error
+                    retry = 0
                     while True:
                         try:
-                            self.trans = self.vvm.getTransmission()
+                            trans = self.vvm.getTransmission()
                             break
+                        except visa.VisaIOError:
+                            print("Visa Timeout Error, retrying twice")
+                            if retry < 2:
+                                retry +=1
+                                pass
+                            else:
+                                # Re-raise the exception
+                                raise
+                                break
                         except ValueError:
                             pass
-                    trans = self.vvm.getTransmission()
                     self.vvm_data.append(trans)
                     self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y/self.conv_factor))
                     print("    X: {:.3}".format(self.pos_x/self.conv_factor) + ", Y: {:.3}".format(self.pos_y/self.conv_factor))
@@ -215,13 +235,22 @@ class Beamscanner:
                 while self.pos_x >= self.pos_x_min:
                     # Collects VVM and position data
                     self.time_data.append(time.time())
+                    retry = 0
                     while True:
                         try:
-                            self.trans = self.vvm.getTransmission()
+                            trans = self.vvm.getTransmission()
                             break
+                        except visa.VisaIOError:
+                            print("Visa Timeout Error, retrying twice")
+                            if retry < 2:
+                                retry +=1
+                                pass
+                            else:
+                                # Re-raise the exception
+                                raise
+                                break
                         except ValueError:
                             pass
-                    trans = self.vvm.getTransmission()
                     self.vvm_data.append(trans)
                     self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y/self.conv_factor))
                     print("    X: {:.3}".format(self.pos_x/self.conv_factor) + ", Y: {:.3}".format(self.pos_y/self.conv_factor))
@@ -255,7 +284,8 @@ class Beamscanner:
         print("Writing data to spreadsheet...")
         
         # Creates document for libre office
-        out = open("BeamscannerData/" + self.save_name, 'w')
+        out = open(self.save_name, 'w')
+        
         out.write("Time (s) \tX Position (mm) \tY Position (mm) \tAmplitude (dB) \tPhase (deg)\n")  
         
         x_data = []
@@ -287,7 +317,7 @@ class Beamscanner:
         y_data = []
         amp_data = []   
         
-        f = open("BeamscannerData/" + str(file_name), 'r')
+        f = open(str(file_name), 'r')
         lines = f.readlines()
         f.close()
         
@@ -320,7 +350,7 @@ class Beamscanner:
         amp_data = []
         phase_data = []
         
-        f = open("BeamscannerData/" + str(file_name), 'r')
+        f = open(str(file_name), 'r')
         lines = f.readlines()
         f.close()
         
@@ -355,7 +385,7 @@ class Beamscanner:
         phase_data_all = []    
         phase_data = []
 
-        f = open("BeamscannerData/" + str(file_name), 'r')
+        f = open(str(file_name), 'r')
         lines = f.readlines()
         f.close()
         
@@ -406,7 +436,7 @@ class Beamscanner:
         phase_data_all = []    
         phase_data = []
 
-        f = open("BeamscannerData/" + str(file_name), 'r')
+        f = open(str(file_name), 'r')
         lines = f.readlines()
         f.close()
         
@@ -482,7 +512,8 @@ if __name__ == "__main__":
     
     # Finished scanning
     print("\nExecution time: " + str(time.time() - bs.start_time))
-    bs.endSG()
+    # Don't turn off sig gens! 
+    # bs.endSG()
     
     # Writing to spread sheet
     bs.spreadsheet()
