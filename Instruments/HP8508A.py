@@ -156,7 +156,7 @@ class HP8508A(Instrument.Instrument):
         return units
 
 
-    def getData(self, meas=self.mode):
+    def getData(self, meas=None):
         '''Return the requested measurement(s) from the VVM<meas> is one of:
 
         AVOLtage, BVOLtage - A and B voltages
@@ -171,6 +171,12 @@ class HP8508A(Instrument.Instrument):
         CORE
         <meas> can be concatenated with comma separation
         '''
+        if meas==None:
+            if self.mode != "UNKNOWN":               
+                meas = self.mode
+            else:
+                meas = "APOW"
+                
         # Trigger the measurement if required
         if self.triggersource == "BUS" and self.triggered == False:
             self.trigger()
