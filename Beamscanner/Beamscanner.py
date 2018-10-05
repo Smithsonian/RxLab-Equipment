@@ -49,7 +49,7 @@ class Beamscanner:
 
         self.save_name = lines[0].split("!")[0]
         self.Range = float(lines[1].split("!")[0])
-        self.Step = float(lines[2].split("!")[0])
+        self.Res = float(lines[2].split("!")[0])
         self.Average = int(lines[3].split("!")[0])
         self.Format = lines[4].split("!")[0]
         self.RFfreq = float(lines[5].split("!")[0])
@@ -63,6 +63,8 @@ class Beamscanner:
         self.velocity = float(lines[13].split("!")[0])
         self.accel = float(lines[14].split("!")[0])
         
+        self.setStep(self.Res)
+
 
     def initGPIB(self):
         """Initialize PyVisa and check it's working.
@@ -126,9 +128,9 @@ class Beamscanner:
     def setStep(self, res):
         # Sets step size for position increments
         # Converts resolution in mm to microsteps for MSL
-        step = int(res * self.conv_factor)
-        return step
-
+        self.Step = int(res * self.conv_factor)
+        
+        
     def findMaxPos(self):
         # Finds the X and Y positions of maximum voltmeter amplitude
         # Function only used in "findCenter"
@@ -184,6 +186,16 @@ class Beamscanner:
         # Gets initial position
         self.pos_x = int(self.msl_x.getPos())
         self.pos_y = int(self.msl_y.getPos())
+        
+        # Create numpy arrays to store the data
+        x = np.arange(self.pos_x_min, self.pos_x_max+self.Step, self.Step, dtype=float)
+        y = np.arange(self.pos_y_min, self.pos_y_max+self.Step, self.Step, dtype=float)
+        self.xVals, self.yVals = np.meshgrid(x, y)
+        
+        # reverse everyother line in self.xVals
+        self.xVals[1::2,:] = self.xVals[1::2,::-1]
+        
+        self.transVals = np.zeros_like(self.xVals, dtype=complex)
 
         # VVM ready to begin collecting data
         self.vvm.trigger()
@@ -211,72 +223,29 @@ class Beamscanner:
         return trans
         
     
-=======
-
->>>>>>> 0a243054a006468b359bb025cf3f80875ba8a79d
     def scan(self, res):
-
-        # Establish data arrays and parameters
-        step = self.setStep(res)
-        self.vvm_data = []
-        self.pos_data = []
-        self.time_data = []
-        self.direction = "right"
-        self.delay = 0
-
-        while self.pos_y <= self.pos_y_max:
-            # "Direction" is the direction at which the MSL travels
-            # "Direction" gets reversed to maximize speed
-            if self.direction == "right":
-                while self.pos_x <= self.pos_x_max:
-                    # Collects VVM and position data
-                    self.time_data.append(time.time())
-                    # Gets transmissions from VVM and loops in case of error
-                    trans = self.getTransmission()
-                    self.vvm_data.append(trans)
-                    self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y/self.conv_factor))
-                    print("    X: {:.3}".format(self.pos_x/self.conv_factor) + ", Y: {:.3}".format(self.pos_y/self.conv_factor))
-                    print("    " + str(trans))
-                    # X MSL steps relatively, if not in maximum position
-                    if self.pos_x != self.pos_x_max:
-                        self.msl_x.moveRel(step)
-                        self.msl_x.hold()
-                        self.pos_x = int(self.msl_x.getPos())
-                    elif self.pos_x == self.pos_x_max:
-                        break
-
-                self.direction = "left"
-                pass
-
-            elif self.direction == "left":
-                while self.pos_x >= self.pos_x_min:
-                    # Collects VVM and position data
-                    self.time_data.append(time.time())
-                    trans = self.getTransmission()
-                    self.vvm_data.append(trans)
-                    self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y/self.conv_factor))
-                    print("    X: {:.3}".format(self.pos_x/self.conv_factor) + ", Y: {:.3}".format(self.pos_y/self.conv_factor))
-                    print("    " + str(trans))
-                    # X MSL steps relatively in opposite direction (-), if not in minimum position
-                    if self.pos_x != self.pos_x_min:
-                        self.msl_x.moveRel(-step)
-                        self.msl_x.hold()
-                        self.pos_x = int(self.msl_x.getPos())
-                    elif self.pos_x == self.pos_x_min:
-                        break
-
-                self.direction = "right"
-                pass
-
-            # Y MSL steps relatively
-            self.msl_y.moveRel(step)
+        """Scan over the meshgrids of the stored xVals and yVals, and record data
+        in trans.
+        
+        initScan will set up the xVals and yVals array as a regular raster scan grid.
+        however, this methods will work with any scan pattern defined in those variables."""
+        
+        for i, x in enumerate(self.xVals.ravel()):
+            y = self.yVals.ravel()[i]
+            
+            # Move to position
+            self.msl_x.moveAbs(x*self.conv_factor)
+            self.msl_y.moveAbs(y*self.conv_factor)
+            self.msl_x.hold()
             self.msl_y.hold()
-            self.pos_y = int(self.msl_y.getPos())
-
-        time_initial = self.time_data[0]
-        for i in range(len(self.time_data)):
-            self.time_data[i] = self.time_data[i] - time_initial
-
+            
+            # Gets positions and transmissions from VVM and loops in case of error
+            self.xVals.ravel()[i] = self.msl_x.getPos()
+            self.yVals.ravel()[i] = self.msl_y.getPos()
+            self.trans.ravel()[i] = self.getTransmission()
+            print("    X: {:.3f}, Y: {:.3f}".format(self.xVals.ravel()[i]/self.conv_factor, self.xVals.ravel()[i]/self.conv_factor))
+            print("    {:f} dB, {:f} deg".format(20*np.log10(transVals.ravel()[i]), np.degrees(np.angle(transVals.ravel()[i]))))
+            
     def endSG(self):
         # Turns off signal generator output
         self.RF.off()
@@ -501,11 +470,11 @@ if __name__ == "__main__":
     bs.initMSL()
 
     # Find center of beam to calibrate to
-    bs.findCenter(minRes=0.5)
+#    bs.findCenter(minRes=0.5)
 
     # Preparing to scan
     print("Preparing for data ...")
-    bs.moveToCenter()
+#    bs.moveToCenter()
     bs.initScan(bs.Range)
 
     # Scanning
@@ -513,21 +482,21 @@ if __name__ == "__main__":
     bs.scan(bs.Step)
 
     # Finished scanning
-    print("\nExecution time: " + str(time.time() - bs.start_time))
+#    print("\nExecution time: " + str(time.time() - bs.start_time))
     # Don't turn off sig gens!
     # bs.endSG()
 
     # Writing to spread sheet
-    bs.spreadsheet()
+#    bs.spreadsheet()
 
-    print("Plotting data ...")
+#   print("Plotting data ...")
     # Plots position vs. amplitude contour plot
-    bs.contour_plot(bs.save_name)
+#   bs.contour_plot(bs.save_name)
     # Plots amplitude and phase vs. time
-    bs.time_plot(bs.save_name)
+#    bs.time_plot(bs.save_name)
     # Plots amplitude and phase vs. y position for slice at center of beam
-    bs.y_plot(bs.save_name)
+#    bs.y_plot(bs.save_name)
     # Plots amplitude and phase vs. X position for slice at center of beam
-    bs.x_plot(bs.save_name)
+#    bs.x_plot(bs.save_name)
 
     print("\nEnd.")

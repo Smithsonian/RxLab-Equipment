@@ -1,4 +1,9 @@
 import Instrument
+import numpy as np
+
+def dBdeg2complex(amp, phase):
+    """Convert amplitude in dB and phase in degrees to cartesian complex number"""
+    return np.power(10.0, amp/20) * np.exp(1j*np.deg2rad(phase))
 
 class HP8508A(Instrument.Instrument):
     '''Class for communicating with an HP 8508A Vector Voltmeter'''
@@ -120,7 +125,7 @@ class HP8508A(Instrument.Instrument):
         if self.format == "LOGARITHMIC,POLAR" or self.format == "LINEAR,POLAR":
             amp = float(datastr.split(",")[0])
             phase = float(datastr.split(",")[1])
-            data = (amp, phase)
+            data = dBdeg2complex(amp, phase)
 
         elif self.format == "LINEAR,RECTANGULAR" or self.format == "LOGARITHMIC,RECTANGULAR":
             x = float(datastr.split(",")[0])
