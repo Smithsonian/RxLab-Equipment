@@ -46,16 +46,23 @@ class Beamscanner:
         f = open(useFile, 'r')
         lines = f.readlines()
         f.close()
-        self.save_name = lines[0].split()[0]
-        self.Range = float(lines[1].split()[0])
-        self.Step = float(lines[2].split()[0])
-        self.Average = int(lines[3].split()[0])
-        self.Format = lines[4].split()[0]
-        self.RFfreq = float(lines[5].split()[0])
-        self.LOfreq = float(lines[6].split()[0])
-        self.RFpow = float(lines[7].split()[0])
-        self.LOpow = float(lines[8].split()[0])
-        self.conv_factor = int(lines[9].split()[0])
+
+        self.save_name = lines[0].split("!")[0]
+        self.Range = float(lines[1].split("!")[0])
+        self.Step = float(lines[2].split("!")[0])
+        self.Average = int(lines[3].split("!")[0])
+        self.Format = lines[4].split("!")[0]
+        self.RFfreq = float(lines[5].split("!")[0])
+        self.LOfreq = float(lines[6].split("!")[0])
+        self.RFpow = float(lines[7].split("!")[0])
+        self.LOpow = float(lines[8].split("!")[0])
+        self.conv_factor = int(lines[9].split("!")[0])
+        self.searchCenter = (float(lines[10].split("!")[0].split(",")[0]), float(lines[10].split("!")[0].split(",")[0]))
+        self.searchRange = float(lines[11].split("!")[0])
+        self.searchRes = float(lines[12].split("!")[0])
+        self.velocity = float(lines[13].split("!")[0])
+        self.accel = float(lines[14].split("!")[0])
+        
 
     def initGPIB(self):
         """Initialize PyVisa and check it's working.
@@ -83,7 +90,7 @@ class Beamscanner:
         self.vvm.setFormat(self.Format)
         self.vvm.setAveraging(self.Average)
         self.vvm.setTriggerBus()
-        print("\nVVM format: " + str(self.vvm.getFormat()) + "\n")
+        print("\nVVM format: {}".format(str(self.vvm.getFormat())))
 
     def initSG(self):
         # Initializes signal generator paramters
@@ -93,24 +100,22 @@ class Beamscanner:
         self.LO.setFreq(self.LOfreq)
         self.LO.setPower(self.LOpow)
         self.LO.on()
-        print("RF: Frequency = " + str(self.RFfreq) + " Hz, Power = " + str(self.RFpow) +
-              " dBm\nLO: Frequency =  " + str(self.LOfreq) + " Hz, Power = " + str(self.LOpow) + " dBm")
+        print("RF: Frequency = {:f} Hz, Power = {:f} dBm".format(self.RFfreq, self.RFpow))
+        print("LO: Frequency = {:f} Hz, Power = {:f} dBm".format(self.LOfreq, self.LOpow))
 
     def initMSL(self):
-        # Sets MSL home positions to minimum position to synchronize between tests
-        self.msl_x.zero()
-        self.msl_y.zero()
-        self.msl_x.hold()
-        self.msl_y.hold()
-
+        # Sets MSL home positions to central position to synchronize between tests
+        self.msl_x.center()
+        self.msl_y.center()
+        
         # Sets MSL motion parameters
-        self.msl_x.setAccel(5000000)
-        self.msl_x.setDecel(5000000)
-        self.msl_x.setVelMax(100000)
-        self.msl_y.setAccel(5000000)
-        self.msl_y.setDecel(5000000)
-        self.msl_y.setVelMax(100000)
-
+        self.msl_x.setAccel(self.accel)
+        self.msl_x.setDecel(self.accel)
+        self.msl_x.setVelMax(self.velocity)
+        self.msl_y.setAccel(self.accel)
+        self.msl_y.setDecel(self.accel)
+        self.msl_y.setVelMax(self.velocity)
+        
     def setRange(self, Range):
         # Range of travel stage motion (50x50mm)
         self.pos_x_max = int((Range/2) * self.conv_factor) # 25 mm * 5000 microsteps per mm
@@ -131,19 +136,20 @@ class Beamscanner:
         index = self.vvm_data.index(max_amp)
         self.pos_x_center = int(self.pos_data[index][0])
         self.pos_y_center = int(self.pos_data[index][1])
-
-    def findCenter(self):
+    
+    
+    def findCenter(self, minRes = 0.1):
         # Runs scan over area & finds maximum amplitude peak.
         # Begins at arbitrary position and decreases range and resolution with each iteration.
 
         print("\nFinding center...")
-
-        res = 8
-        Range = 80
-        self.pos_x_center = 50
-        self.pos_y_center = 50
-
-        while res >= .1:
+        
+        res = bs.searchRes
+        Range = bs.searchRange
+        self.pos_x_center = bs.searchCenter[0]
+        self.pos_y_center = bs.searchCenter[1]
+        
+        while res >= minRes:
             self.setRange(Range)
             self.setStep(res)
 
@@ -153,7 +159,7 @@ class Beamscanner:
             self.findMaxPos()
 
             Range = Range / 5
-            res = Range / 10
+            res = Range / 5
 
         print("\n")
 
@@ -163,8 +169,8 @@ class Beamscanner:
         self.msl_y.moveAbs(int(self.pos_y_center * self.conv_factor))
         self.msl_x.hold()
         self.msl_y.hold()
-        self.msl_x.setHome()
-        self.msl_y.setHome()
+        self.msl_x.zero()
+        self.msl_y.zero()
 
     def initScan(self, Range):
         # Get range parameters for scan
@@ -182,6 +188,32 @@ class Beamscanner:
         # VVM ready to begin collecting data
         self.vvm.trigger()
 
+        
+    def getTransmission(self):
+        """Get the transmission from the VVM.  Loop if necessary to avoid
+        one-off time out errors"""
+        retry = 0
+        while True:
+            try:
+                trans = self.vvm.getTransmission()
+                break
+            except visa.VisaIOError:
+                print("Visa Timeout Error, retrying twice")
+                if retry < 2:
+                    retry +=1
+                    pass
+                else:
+                    # Re-raise the exception
+                    raise
+                    break
+            except ValueError:
+                pass
+        return trans
+        
+    
+=======
+
+>>>>>>> 0a243054a006468b359bb025cf3f80875ba8a79d
     def scan(self, res):
 
         # Establish data arrays and parameters
@@ -200,22 +232,7 @@ class Beamscanner:
                     # Collects VVM and position data
                     self.time_data.append(time.time())
                     # Gets transmissions from VVM and loops in case of error
-                    retry = 0
-                    while True:
-                        try:
-                            trans = self.vvm.getTransmission()
-                            break
-                        except visa.VisaIOError:
-                            print("Visa Timeout Error, retrying twice")
-                            if retry < 2:
-                                retry +=1
-                                pass
-                            else:
-                                # Re-raise the exception
-                                raise
-                                break
-                        except ValueError:
-                            pass
+                    trans = self.getTransmission()
                     self.vvm_data.append(trans)
                     self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y/self.conv_factor))
                     print("    X: {:.3}".format(self.pos_x/self.conv_factor) + ", Y: {:.3}".format(self.pos_y/self.conv_factor))
@@ -235,22 +252,7 @@ class Beamscanner:
                 while self.pos_x >= self.pos_x_min:
                     # Collects VVM and position data
                     self.time_data.append(time.time())
-                    retry = 0
-                    while True:
-                        try:
-                            trans = self.vvm.getTransmission()
-                            break
-                        except visa.VisaIOError:
-                            print("Visa Timeout Error, retrying twice")
-                            if retry < 2:
-                                retry +=1
-                                pass
-                            else:
-                                # Re-raise the exception
-                                raise
-                                break
-                        except ValueError:
-                            pass
+                    trans = self.getTransmission()
                     self.vvm_data.append(trans)
                     self.pos_data.append((self.pos_x/self.conv_factor,self.pos_y/self.conv_factor))
                     print("    X: {:.3}".format(self.pos_x/self.conv_factor) + ", Y: {:.3}".format(self.pos_y/self.conv_factor))
@@ -499,7 +501,7 @@ if __name__ == "__main__":
     bs.initMSL()
 
     # Find center of beam to calibrate to
-    bs.findCenter()
+    bs.findCenter(minRes=0.5)
 
     # Preparing to scan
     print("Preparing for data ...")

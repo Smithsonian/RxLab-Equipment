@@ -1,10 +1,15 @@
-Test.xlsx   		    !Output file name of scan data
-50			    !Range (ex: 50 --> 50x50mm)
-.5                          !Step size [mm]
-5                           !Averaging
-LOG,POLAR                   !Format type of VVM data
-30003333333		    !RF Frequency in Hz
-15000000000		    !LO Frequency in Hz  
-20		 	    !RF Power in dBm
-20			    !LO Power in dBm
-5000                        !Conversion factor for MSL's (default: 5000 microsteps/mm)
+Test.xlsx       !Output file name of scan data
+50              !Range (ex: 50 --> 50x50mm)
+1.0             !Step size [mm]
+5               !Averaging
+LOG,POLAR       !Format type of VVM data
+30003333333     !RF Frequency in Hz
+15000000000     !LO Frequency in Hz  
+20              !RF Power in dBm
+20              !LO Power in dBm
+5000            !Conversion factor for Linear Slides (default: 5000 microsteps/mm)
+0, 0            !Initial center to use to search for beam center
+90              !Initial range to use to search for beam center
+10              !Initial resolution to use to search for beam center
+10000          !Max velocity for MSL motion
+500000         !Max acceleration for MSL motion

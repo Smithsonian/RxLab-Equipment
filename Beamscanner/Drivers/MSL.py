@@ -13,8 +13,7 @@ class MSL(Instrument.Instrument):
     ''' Class for communicating with a Newmark Systems MSL Linear Stage
         with MDrive Motor'''
     
-    def __init__(self, resource, partyName=None, strict=False):
-        
+    def __init__(self, resource, partyName=None, strict=False, softLimits=True):
         super().__init__(resource)
         
         self.resource.read_termination = '\r\n'
@@ -28,6 +27,11 @@ class MSL(Instrument.Instrument):
         
         # Turns off echo for each command
         self.write("EM = 2")
+        
+        self.posLimit = None
+        self.negLimit = None
+        self.softLimits = softLimits
+        
             
     def write(self, cmd):
         super().write(self.prefix+cmd)
@@ -77,16 +81,38 @@ class MSL(Instrument.Instrument):
         return self.param
     
     def moveAbs(self, pos):
-        'Moves to an absolute position from 0'
-        self.write("MA " + str(pos))
+        """Moves to an absolute position from 0"""
+        if self.softLimits:
+            if self.posLimit:
+                if self.posLimit < pos:
+                    raise ValueError, "Requested position beyond positive range of motion of MSL {}".format(self.partyName)
+            if self.negLimit:
+                if self.negLimit > pos:
+                    raise ValueError, "Requested position beyond negative range of motion of MSL {}".format(self.partyName)
+        self.write("MA {:d}".format(pos))
     
     def moveRel(self, pos):
-        'Moves distance from current position'
-        self.write("MR " + str(pos))
+        """Moves distance from current position"""
+        if self.softLimits:
+            currPos = self.getPos()
+            if self.posLimit:
+                if self.posLimit < pos+currPos:
+                    raise ValueError, "Requested position beyond positive range of motion of MSL {}".format(self.partyName)
+            if self.negLimit:
+                if self.negLimit > pos+currPos:
+                    raise ValueError, "Requested position beyond negative range of motion of MSL {}".format(self.partyName)
+        self.write("MR {:d}".format(pos))
     
     def setHome(self):
-        'Sets current position to home (0 position)'
+        """Sets current position to home (0 position)
+        
+        Also updates stored limits if any"""
+        oldPos = self.getPos()
         self.write("P=0")
+        if self.posLimit:
+            self.posLimit = self.posLimit - oldPos
+        if self.negLimit:
+            self.negLimit = self.negLimit - oldPos
 
     def getPos(self):
         'Returns position relative to 0'
@@ -112,6 +138,20 @@ class MSL(Instrument.Instrument):
     def calibrate(self):
         'Calibration'
         self.write("SC")
+        
+    def findLimits(self):
+        """Find the limits of travel of the stage, using the built in limit
+        switches"""
+        # Step forward until we run into the limit switch
+        while not bool(int(self.query("PR I1"))):
+            self.moveRel(1000)
+        self.posLimit = self.getPos()
+        
+        # Step backward until we run into the limit switch
+        while not bool(int(self.query("PR I2"))):
+            self.moveRel(-1000)
+        self.negLimit = self.getPos()
+        
         
     def initialize(self):
         'Returns all variables to default'
