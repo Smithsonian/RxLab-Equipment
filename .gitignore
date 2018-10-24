@@ -2,3 +2,4 @@ Applications
 *.dat
 *.xlsx
 *__pycache__*
+*.pyc
