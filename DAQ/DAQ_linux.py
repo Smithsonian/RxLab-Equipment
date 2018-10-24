@@ -254,31 +254,32 @@ class DAQ:
         # Allocate a buffer to receive the data.
         data = create_float_buffer(channel_count, samples_per_channel)
 
-        # Start the acquisition.
-        self.AiDevice.a_in_scan(low_channel, high_channel, self.AiMode, self.AiRange, samples_per_channel,
-                                        rate, ScanOption.CONTINUOUS, AInScanFlag.DEFAULT, data)
+        try:
+            # Start the acquisition.
+            self.AiDevice.a_in_scan(low_channel, high_channel, self.AiMode, self.AiRange, samples_per_channel,
+                                            rate, ScanOption.CONTINUOUS, AInScanFlag.DEFAULT, data)
 
-        start_time = time.time()
+            start_time = time.time()
 
-        # Set scan time to a high number of seconds if it isn't set
-        if scan_time == None:
-            scan_time = 500000
+            # Set scan time to a high number of seconds if it isn't set
+            if scan_time == None:
+                scan_time = 500000
 
-        while (time.time() - start_time) <= scan_time:
-            # Get the status of the background operation
-            status, transfer_status = self.AiDevice.get_scan_status()
-            index = transfer_status.current_index
+            while (time.time() - start_time) <= scan_time:
+                # Get the status of the background operation
+                status, transfer_status = self.AiDevice.get_scan_status()
+                index = transfer_status.current_index
 
-            # Check to see if we are done
-            if transfer_status.current_scan_count >= samples_per_channel:
-                break
+                # Check to see if we are done
+                if transfer_status.current_scan_count >= samples_per_channel:
+                    break
 
-            sleep(self.sleepTime)
-
-        if self.daq_device:
-            # Stop the acquisition if it is still running.
-            if status == ScanStatus.RUNNING:
-                self.AiDevice.scan_stop()
+                sleep(self.sleepTime)
+        finally:
+            if self.daq_device:
+                # Stop the acquisition if it is still running.
+                if status == ScanStatus.RUNNING:
+                    self.AiDevice.scan_stop()
 
         d = np.array(data)
         d = d.reshape((samples_per_channel, channel_count))

@@ -103,6 +103,9 @@ class IV:
             self.vmin = self.vmax
             self.vmax = v
             self.reverseSweep = not self.reverseSweep
+        if self.step < 0:
+            self.step = -self.step
+            self.reverseSweep = not self.reverseSweep
 
 
     def initDAQ(self):
@@ -193,13 +196,16 @@ class IV:
         This should be overidden when subclassing IV.py to create a new sweep
         type"""
         # Sanity check values to make sure that requested bias range is
-        # within bias limits
+        # within bias limits and that vmin, vmax and step values are sane
         self.crop()
+        self.sort()
 
         print("Preparing for sweep...")
         # Calculate sweep values
         self.BiasPts = np.arange(self.vmin, self.vmax+self.step, self.step)
         if self.reverseSweep:
+            if self.verbose:
+                print("Flipping BiasPts")
             self.BiasPts = np.flipud(self.BiasPts)
 
         # Prepares for data collection
@@ -321,11 +327,8 @@ if __name__ == "__main__":
         test.save_name = input("Output file name: ")
         test.vmin = float(input("Minimum voltage [mV]: "))
         test.vmax = float(input("Maximum voltage [mV]: "))
-        test.sort()
+
         test.step = float(input("Step [mV]: "))
-        if test.step < 0:
-            test.step = -test.step
-            test.reverseSweep = not test.reverseSweep
 
     # Run a sweep
     test.sweep()

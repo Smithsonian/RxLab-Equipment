@@ -276,8 +276,9 @@ class DAQ:
             high_channel = self.number_of_channels - 1
         if low_channel < 0:
             low_channel = 0
+            
         channel_count = high_channel - low_channel + 1
-
+        
         # Allocate a buffer to receive the data.
         total_count = samples_per_channel*channel_count
         data = scaled_win_buf_alloc(total_count)
@@ -285,32 +286,35 @@ class DAQ:
 
         # Set up the scan options
         scan_options = (enums.ScanOptions.CONTINUOUS | enums.ScanOptions.SCALEDATA  | enums.ScanOptions.BACKGROUND)
-
-        # Start the acquisition.
-        a_in_scan(self.boardnum, low_channel, high_channel, total_count,
+        try:
+            # Start the acquisition.
+            a_in_scan(self.boardnum, low_channel, high_channel, total_count,
                                         rate, self.AiRange, data, scan_options)
 
-        status, curr_count, curr_index = get_status(
-                    self.boardnum, enums.FunctionType.AIFUNCTION)
-
-        while status != enums.Status.IDLE:
-            sleep(self.sleepTime)
-            # Get the status of the background operation
             status, curr_count, curr_index = get_status(
                     self.boardnum, enums.FunctionType.AIFUNCTION)
 
-            # Check to see if we are done
-            if curr_count >= total_count:
-                break
+            while status != enums.Status.IDLE:
+                sleep(self.sleepTime)
+                # Get the status of the background operation
+                status, curr_count, curr_index = get_status(
+                    self.boardnum, enums.FunctionType.AIFUNCTION)
 
-        stop_background(self.boardnum, enums.FunctionType.AIFUNCTION)
+                # Check to see if we are done
+                if curr_count >= total_count:
+                    break
+
+        finally:
+            stop_background(self.boardnum, enums.FunctionType.AIFUNCTION)
+
         eng_values = []
         for i in range(total_count):
             eng_values.append(ctypes_array[i])
         d = np.array(eng_values)
-        win_buf_free(data)
         d = d.reshape((samples_per_channel, channel_count))
 
+        win_buf_free(data)
+            
         return d
 
 
