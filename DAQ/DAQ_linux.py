@@ -20,7 +20,7 @@ import time
 
 
 class DAQ:
-    def __init__(self, boardnum=0, AiMode=AiInputMode.DIFFERENTIAL, AiRange=enums.ULRange.BIP5VOLTS, autoConnect=True, verbose=True):
+    def __init__(self, boardnum=0, AiMode=AiInputMode.DIFFERENTIAL, AiRange=Range.BIP5VOLTS, AoRange=Range.UNI5VOLTS, autoConnect=True, verbose=True):
         """Create the DAQ device, and if <autoConnect>, automatically connect to
         <boardnum>"""
         self.devices = None
@@ -34,7 +34,7 @@ class DAQ:
         self.AoInfo = None
         self.DioInfo = None
         self.AiRange = AiRange
-        self.AoRange = None
+        self.AoRange = AoRange
 
         # Time to sleep between checks in AInScan
         self.sleepTime = 0.01
@@ -62,15 +62,20 @@ class DAQ:
 
         Sets self.daq_device to the resulting uldaq object."""
         try:
-            self.devices = get_daq_device_inventory(self.interface_type)
+            if self.devices == None:
+                self.listDevices()
+            if self.daq_device != None:
+                del self.daq_device
             self.daq_device = DaqDevice(self.devices[boardnum])
+            self.boardnum = boardnum
             # Connect to DAQ device
             descriptor = self.daq_device.get_descriptor()
-            self.daq_device.connect()
+            if not self.daq_device.is_connected():
+                self.daq_device.connect()
             if self.verbose:
-                print("Connected to {:s}".format(descriptor.dev_string))
+                print("Connected to {:s} {:s}".format(descriptor.product_name, descriptor.unique_id))
         except (KeyboardInterrupt, ValueError):
-            print("Could not connect DAQ device.")
+            print("Could not connect to DAQ device.")
 
         # Get some basic info on the device
         self.AiDevice = self.daq_device.get_ai_device()
@@ -83,6 +88,7 @@ class DAQ:
         # Set the Ai Input mode and range to that specified in __init__
         self.setAiMode(self.AiMode)
         self.setAiRange(self.AiRange)
+        self.setAoRange(self.AoRange)
 
         self.numChannels()
         self.getAiRange()
@@ -91,15 +97,12 @@ class DAQ:
     def disconnect(self):
         """Disconnects DAQ device"""
         if self.daq_device != None:
-            if self.daq_device.is_connected():
-                self.daq_device.disconnect()
-                self.daq_device.release()
-                self.daq_device = None
-                if self.verbose:
-                    print("DAQ device {:s} is disconnected.".format(self.devices[self.boardnum].product_name))
-            else:
-                if self.verbose:
-                    print("DAQ device {:s} not connected".format(self.devices[self.boardnum].product_name))
+            del self.daq_device
+            if self.verbose:
+                    print("DAQ device {:s} {:s} is disconnected.".format(self.devices[self.boardnum].product_name, self.devices[self.boardnum].unique_id))
+        else:
+            if self.verbose:
+                print("DAQ device {:s} not connected".format(self.devices[self.boardnum].product_name))
         self.daq_device = None
         self.boardnum = None
         self.number_of_channels = None
@@ -139,16 +142,16 @@ class DAQ:
         self.AiMode = mode
         self.getAiInfo()
         self.numChannels()
-        self.setAiRange(self.AiInfo.get_ranges()[0])
+        self.setAiRange(self.AiInfo.get_ranges(self.AiMode)[0])
         self.getAiRange()
 
     def getAiMode(self):
         """Get the AiMode"""
         return self.AiMode
 
-    def setAiRange(self, range):
+    def setAiRange(self, r):
         """Set the AI Range to one of the members of Range class"""
-        self.AiRange = range
+        self.AiRange = r
 
     def getAiRange(self):
         """Get the AI Range"""
@@ -181,9 +184,9 @@ class DAQ:
         """Returns the list of valid ranges for this DAQ"""
         return self.AiInfo.get_ranges(self.AiMode)
 
-    def setAoRange(self, range):
+    def setAoRange(self, r):
         """Sets the AO Range to one of the members of the Range class"""
-        self.AoRange = range
+        self.AoRange = r
 
     def getAoRange(self):
         """Returns the current AO Range"""
@@ -227,24 +230,13 @@ class DAQ:
             raise ValueError("channel index must be 0 or positive")
         self.AoDevice.a_out(channel, self.AoRange, AOutFlag.DEFAULT, data)
 
-    def DOut(self, data, channel=0, port=enums.DigitalPortType.FIRSTPORTA):
+    def DOut(self, data, channel=0, port=DigitalPortType.FIRSTPORTA):
         """Write output digital data to specified channel"""
-        if self.daq_device == None:
-            raise RuntimeError("DAQ device is not connected")
-        if port == enums.DigitalPortType.FIRSTPORTA:
-            port_n = 0
-        elif port == enums.DigitalPortType.FIRSTPORTB:
-            port_n = 1
-        elif port == enums.DigitalPortType.AUXPORT:
-            # Guess the AUXPORT is the only one on hardware with it - we don't have any
-            port_n = 0
-        port_info = self.DioInfo.port_info[port_n]
-
         # Configure port
-        self.DioDevice.d_config_port(port_info, DigitalDirection.OUTPUT)
+        self.DioDevice.d_config_port(port, DigitalDirection.OUTPUT)
 
         # Writes output for bit
-        self.DioDevice.d_bit_out(port_info, channel, data)
+        self.DioDevice.d_bit_out(port, channel, data)
 
     def AInScan(self, low_channel, high_channel, rate, samples_per_channel, scan_time = None):
         """Runs a scan across multiple channels, with multiple samples per channel.  Returns a numpy array of

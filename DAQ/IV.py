@@ -174,7 +174,7 @@ class IV:
             volt = 0.0
 
         # Sets bias to specified voltage
-        self.daq.AOut(volt, self.Out_channel)
+        self.daq.AOut(volt, channel=self.Out_channel)
         time.sleep(self.settleTime)
 
     def sweep(self):
@@ -326,10 +326,6 @@ if __name__ == "__main__":
         if test.step < 0:
             test.step = -test.step
             test.reverseSweep = not test.reverseSweep
-
-    # Set up the IV object
-    test.readFile()
-    test.initDAQ()
 
     # Run a sweep
     test.sweep()

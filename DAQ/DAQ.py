@@ -21,5 +21,6 @@ if __name__ == "__main__":
     print(data)
     data = daq.AInScan(0,1,10000,1000,1)
     print(data)
+    daq.AOut(0.0)
     daq.DOut(1)
     daq.disconnect()
