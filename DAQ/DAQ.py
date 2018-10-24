@@ -7,6 +7,8 @@
 #                                                #
 ##################################################
 
+from __future__ import print_function, division
+
 import platform
 if platform.system().lower().startswith('win'):
     from DAQ_windows import *
@@ -15,9 +17,6 @@ else:
 
 if __name__ == "__main__":
     daq = DAQ()
-    daq.listDevices()
-    daq.connect()
-    daq.setAiRange(5)
     data = daq.AIn(0)
     print(data)
     data = daq.AInScan(0,1,10000,1000,1)

@@ -11,10 +11,13 @@
 #                                                #
 ##################################################
 
+from __future__ import print_function, division
+
 from uldaq import *
 from time import sleep
 import numpy as np
 import time
+
 
 class DAQ:
     def __init__(self, boardnum=0, AiMode=AiInputMode.DIFFERENTIAL, AiRange=enums.ULRange.BIP5VOLTS, autoConnect=True, verbose=True):
@@ -293,9 +296,6 @@ class DAQ:
 
 if __name__ == "__main__":
     daq = DAQ()
-    daq.listDevices()
-    daq.connect()
-    daq.setAiRange(Range.BIP5VOLTS)
     data = daq.AIn(0)
     print(data)
     data = daq.AInScan(0,1,10000,1000,1)

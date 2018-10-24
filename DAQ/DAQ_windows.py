@@ -16,12 +16,16 @@
 #                                                #
 ##################################################
 
+from __future__ import print_function, division
+
 from mcculw.ul import *
 from props import ai, ao, digital
 from mcculw import enums
 from time import sleep
 import numpy as np
 import ctypes
+
+
 
 # Stop InstaCal configurations being used to manage DAQ devices
 ignore_instacal()
@@ -312,7 +316,6 @@ class DAQ:
 
 if __name__ == "__main__":
     daq = DAQ()
-    daq.setAiRangeIndex(enums.ULRange.BIP5VOLTS)
     data = daq.AIn(0)
     print(data)
     data = daq.AInScan(0,1,10000,1000,1)

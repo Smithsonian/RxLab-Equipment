@@ -10,6 +10,8 @@
 # code                                           #
 ##################################################
 
+from __future__ import print_function, division
+
 import sys
 import os
 import time
@@ -93,6 +95,15 @@ class IV:
             self.vmax = self.Vs_min
         if self.vmax > self.Vs_max:
             self.vmax = self.Vs_max
+
+    def sort(self):
+        """Make sure that vmax is greater than vmin"""
+        if self.vmin > self.vmax:
+            v = self.vmin
+            self.vmin = self.vmax
+            self.vmax = v
+            self.reverseSweep = not self.reverseSweep
+
 
     def initDAQ(self):
         """Lists available DAQ devices, connects the selected board and sets the AI Range"""
@@ -260,7 +271,7 @@ class IV:
         if self.verbose:
             print("\nWriting data to spreadsheet...")
 
-        out = open(str(self.save_name), 'w')
+        out = open(self.save_name, 'w')
 
         # Write a header describing the data
         out.write("# Bias (mV)\t\tVoltage (mV)\t\tCurrent (mA)\n")
@@ -310,11 +321,11 @@ if __name__ == "__main__":
         test.save_name = input("Output file name: ")
         test.vmin = float(input("Minimum voltage [mV]: "))
         test.vmax = float(input("Maximum voltage [mV]: "))
+        test.sort()
         test.step = float(input("Step [mV]: "))
-        if test.step <= 0:
-            while test.step <= 0:
-                print("Step size must be greater than 0.")
-                test.step = float(input("Step [mV]: "))
+        if test.step < 0:
+            test.step = -test.step
+            test.reverseSweep = not test.reverseSweep
 
     # Set up the IV object
     test.readFile()
@@ -328,10 +339,13 @@ if __name__ == "__main__":
     plt.ion()
     test.plot()
     # Wait until the plot is done
-    input("Press [enter] to continue.")
+    try:
+        input("Press [enter] to continue.")
+    except SyntaxError:
+        pass
 
 
     # Close down the IV object cleanly, releasing the DAQ
     del test
 
-    print("\nEnd.")
+    print("End.")
