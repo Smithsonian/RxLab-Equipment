@@ -6,7 +6,7 @@ from mcculw.enums import BoardInfo, InfoType, ULRange, FunctionType,\
     TrigType, ScanOptions, ErrorCode
 from mcculw.ul import ULError
 
-from examples.props.propsbase import Props
+from props.propsbase import Props
 
 
 class AnalogInputProps(Props):
@@ -22,7 +22,7 @@ class AnalogInputProps(Props):
         self._board_num = board_num
 
         # Get the board type from UL
-        board_type = ul.get_config(
+        self.board_type = ul.get_config(
             InfoType.BOARDINFO, self._board_num, 0, BoardInfo.BOARDTYPE)
 
         self.resolution = self._get_resolution()
@@ -37,7 +37,7 @@ class AnalogInputProps(Props):
             self.supported_scan_options = None
 
         self.packet_size = \
-            self._get_packet_size(board_type)
+            self._get_packet_size(self.board_type)
         self.continuous_requires_packet_size_multiple = \
             self.packet_size != 1
 
@@ -47,7 +47,7 @@ class AnalogInputProps(Props):
         self.analog_trig_range = -1
         if self.supports_analog_trig:
             self.analog_trig_resolution, self.analog_trig_range = \
-                self._get_analog_trig_info(board_type)
+                self._get_analog_trig_info(self.board_type)
 
     def _get_packet_size(self, board_type):
         """

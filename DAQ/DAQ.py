@@ -1,18 +1,18 @@
 ##################################################
 #                                                #
-# Wrapper around platform specific drivers 		 #
+# Wrapper around platform specific drivers          #
 # for MCC DAQ devices                            #
 #                                                #
-# Paul Grimes, 2018                              #         
+# Paul Grimes, 2018                              #
 #                                                #
 ##################################################
 
 import platform
-if platform.system().lower().startsWith('win'):
-	from DAQ_windows import *
+if platform.system().lower().startswith('win'):
+    from DAQ_windows import *
 else:
-	from DAQ_linux import *
-     
+    from DAQ_linux import *
+
 if __name__ == "__main__":
     daq = DAQ()
     daq.listDevices()

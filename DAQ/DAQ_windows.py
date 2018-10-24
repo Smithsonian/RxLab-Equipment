@@ -1,22 +1,23 @@
 ##################################################
 #                                                #
 # Driver for DAQ devices using the MCC UL        #
-# for Windows									 #
+# for Windows                                    #
 #                                                #
 # Import this via the DAQ.py wrapper that        #
 # selects which of DAQ_windows and DAQ_linux to  #
-# import.										 #
-#												 #
+# import.                                        #
+#                                                #
 # Note that the windows version works somewhat   #
 # differently to the object orientated linux     #
-# version.  									 #
+# version.                                       #
 #                                                #
-# Larry Gardner, July 2018						 #
+# Larry Gardner, July 2018                       #
 # Paul Grimes, Oct, 2018                         #
 #                                                #
 ##################################################
 
 from mcculw.ul import *
+from props import ai, ao, digital
 from mcculw import enums
 from time import sleep
 import numpy as np
@@ -24,28 +25,6 @@ import ctypes
 
 # Stop InstaCal configurations being used to manage DAQ devices
 ignore_instacal()
-
-# Define some nearly empty classes for holding data
-class Struct(object):
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
-
-class AiInfo(Struct):
-    def get_ranges(self):
-        """Ignores AiMode, as AiInfo.ranges is filled according to device type and mode.
-        Object kept for compatibility."""
-        return self.ranges
-    def has_pacer(self):
-        return self._has_pacer
-
-class AoInfo(Struct):
-    def get_ranges(self):
-        """AoInfo.ranges is filled according to device type and mode."""
-        return self.ranges
-
-class DioInfo(Struct):
-    def get_port_types():
-        """DioInfo.port_types is filled according to device type"""
 
 # For handling memory pointers
 def memhandle_as_ctypes_array_scaled(memhandle):
@@ -59,7 +38,7 @@ class DAQ:
         connect DAQ board, rather than the Daq object.  In combination with self.boardnum,
         this contains all the information available for connnections.
     """
-    def __init__(self, autoConnect=True, boardnum=0, AiMode=enums.AnalogInputMode.DIFFERENTIAL, verbose=True):
+    def __init__(self, boardnum=0, AiMode=enums.AnalogInputMode.DIFFERENTIAL, AiRange=enums.ULRange.BIP5VOLTS, verbose=True, autoConnect=True):
         """Create the DAQ device, and if autoConnect, automatically connect to
         board number 0"""
         self.devices = None
@@ -69,10 +48,11 @@ class DAQ:
 
         self.interface_type = enums.InterfaceType.USB
         self.AiMode = AiMode
-        self.AiInfo = AiInfo()
-        self.AoInfo = AoInfo()
-        self.AiRange = None
-		self.AoRange = None
+        self.AiInfo = None
+        self.AoInfo = None
+        self.DioInfo = None
+        self.AiRange = AiRange
+        self.AoRange = None
 
         # Time to sleep between checks in AInScan
         self.sleepTime = 0.01
@@ -82,6 +62,7 @@ class DAQ:
 
 
     def listDevices(self):
+        """List DAQ devices connected to this machine"""
         try:
             self.devices = get_daq_device_inventory(self.interface_type)
             self.number_of_devices = len(self.devices)
@@ -95,30 +76,40 @@ class DAQ:
             print("Could not find DAQ device(s).")
 
     def connect(self, boardnum=0):
-        # Connects to DAQ device
+        """Connects to DAQ device <boardnum>.  If device is already connected,
+        this will access that device.
+
+        Sets self.daq_device to the DaqDeviceDescriptor for that device."""
         try:
-			# Search for devices to get the DAQ ids
+            # Search for devices to get the DAQ ids
             if self.devices == None:
                 self.listDevices()
-			# Register the board with mcculw and store the descriptor internally
-			create_daq_device(boardnum, self.devices[boardnum])
-			self.daq_device = self.devices[boardnum]
+            # Register the board with mcculw and store the descriptor internally
+            # if the board is already in use, just steal it...
+            try:
+                create_daq_device(boardnum, self.devices[boardnum])
+            except ULError as err:
+                if err.errorcode == enums.ErrorCode.BOARDNUMINUSE:
+                    pass
+            self.daq_device = self.devices[boardnum]
             self.boardnum = boardnum
             if self.verbose:
-                print("Connected to {:s} : {:s}".format(self.daq_device.dev_string. self.daq_device.unique_id))
+                print("Connected to {:s} : {:s}".format(self.daq_device.dev_string, self.daq_device.unique_id))
         except (KeyboardInterrupt, ValueError):
             print("Could not connect to DAQ device {:d}.".format(boardnum))
 
         # Get some basic info on the device
-        self.numChannels()
         self.getAiInfo()
         self.getAoInfo()
+        self.getDioInfo()
 
-		# Set the Ai Input mode to that specified in __init__
-		self.setAiMode(self.AiMode)
+        # Set the Ai Input mode and range to that specified in __init__
+        self.setAiMode(self.AiMode)
+        self.setAiRange(self.AiRange)
 
-		self.getAiRange()
-		self.getAoRange()
+        self.numChannels()
+        self.getAiRange()
+        self.getAoRange()
 
 
     def name(self, index=0):
@@ -129,111 +120,74 @@ class DAQ:
         return name
 
     def numChannels(self):
-        """Get the number of channels and the AI"""
-        self.number_of_channels = get_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.NUMADCHANS)
+        """Get the number of AI channels"""
+        self.number_of_channels = self.AiInfo.num_ai_chans
 
-    def _get_supports_scan(self):
-        """From mcculw.examples.props.ai.py
-
-        Tests to see if the DAQ device supports scanning i.e. has a hardward pacer"""
-        try:
-            get_status(self.boardnum, enums.FunctionType.AIFUNCTION)
-        except ULError:
-            return False
-        return True
-
-    def _get_available_ranges(self, ad_resolution):
-        result = []
-
-        # Check if the board has a switch-selectable, or only one, range
-        hard_range = get_config(
-            enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.RANGE)
-
-        if hard_range >= 0:
-            result.append(enums.ULRange(hard_range))
-        else:
-            for ai_range in enums.ULRange:
-                try:
-                    if ad_resolution <= 16:
-                        a_in(self.boardnum, 0, ai_range)
-                    else:
-                        a_in_32(self.boardnum, 0, ai_range)
-                    result.append(ai_range)
-                except ULError as e:
-                    if (e.errorcode == enums.ErrorCode.NETDEVINUSE or
-                            e.errorcode == enums.ErrorCode.NETDEVINUSEBYANOTHERPROC):
-                        raise
-
-        return result
-
-    def _get_resolution(self):
-        return get_config(
-            enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.ADRES)
-
-	def getAiInfo(self):
-		"""Get miscellaneous AI information and store it in a struct
-
-        We hard code the allowed ranges for the USB-1408 because mcculw can't
-        tells us which are allowed"""
-        self.AiInfo._has_pacer = self._get_supports_scan()
-        self.AiInfo._ad_resolution = self._get_resolution()
-        self.AiInfo.ranges = self._get_available_ranges(self.AiInfo._ad_resolution)
+    def getAiInfo(self):
+        """Get AI information using the mcculw examples/props/ai.AnalogInputProps class"""
+        self.AiInfo = ai.AnalogInputProps(self.boardnum)
 
     def getAoInfo(self):
-		"""Get miscellaneous AO information and store it in a struct
-
-        We hard code the allowed ranges for the USB-1408 because mcculw can't
-        tells us which are allowed"""
-        if self.name().startswith("USB-1408") or self.name().startswith("USB-1208"):
-            self.AoInfo.ranges = {enums.ULRange.UNI5VOLTS.value:enums.ULRange.UNI5VOLTS}
+        """Get AO information using the mcculw examples/props/ao.AnalogOutputProps class"""
+        self.AoInfo = ao.AnalogOutputProps(self.boardnum)
 
     def getDioInfo(self):
-		"""Get miscellaneous DIO information and store it in a struct
+        """Get DIO information using the mcculw examples/props/digital.DigitalProps class"""
+        self.DioInfo = digital.DigitalProps(self.boardnum)
 
-        We hard code the port types for the USB-1408 because mcculw can't
-        tells us which are allowed"""
-        if self.name().startswith("USB-1408") or self.name().startswith("USB-1208"):
-            self.DioInfo.port_types = {
-                        enums.DigitalPortType.FIRSTPORTA.value:enums.DigitalPortType.FIRSTPORTA,
-                        enums.DigitalPortType.FIRSTPORTB.value:enums.DigitalPortType.FIRSTPORTB,
-                        }
+    def setAiMode(self, mode):
+        """Sets the AiMode to one of the modes in enums.AnalogInputMode"""
+        a_input_mode(self.boardnum, mode)
+        self.getAiInfo()
+        self.getAiMode()
+        self.numChannels()
+        self.setAiRange(self.AiInfo.available_ranges[0])
+        self.getAiRange()
 
-	def setAiMode(self, mode):
-		"""Sets the AiMode to one of the modes in enums.AnalogInputMode"""
-		a_input_mode(self.boardnum, mode)
-
-	def getAiMode(self):
-		"""Getes the AiMode for the current daq device"""
-		self.AiMode = enums.AnalogInputMode(get_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.ADAIMODE))
-		return self.AiMode
+    def getAiMode(self):
+        """Getes the AiMode for the current daq device"""
+        self.AiMode = enums.AnalogInputMode(get_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.ADAIMODE))
+        return self.AiMode
 
     def setAiRange(self, range):
         """Sets the AI Range to one of the ranges in enums.ULRange"""
-		set_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.RANGE, range)
-        self.AiMode = range
-
-    def getAiRangeIndex(self):
-        """Returns the id of the current AiRange in the list of self.AiInfo.get_ranges(self.AiMode)"""
-		return self.AiRange._value
+        set_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.RANGE, range)
+        self.AiRange = range
 
     def getAiRange(self):
         """Returns the current range of the DAQ"""
         self.AiRange = enums.ULRange(get_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.RANGE))
-		return self.AiRange
+        return self.AiRange
 
-	def setAoRange(self, range):
+    def setAiRangeIndex(self, r):
+        """Set the Ai Range by the index of the range in self.getRanges()"""
+        ranges = self.getAiRanges()
+        if r < len(ranges):
+            self.AiRange = ranges[r]
+        else:
+            raise ValueError("Specified Range Index not found")
+
+    def getAiRangeIndex(self):
+        """Returns the id of the current AiRange in the list of self.AiInfo.get_ranges(self.AiMode)"""
+        ranges = self.getAiRanges()
+        return ranges.index(self.AiRange)
+
+    def getAiRanges(self):
+        return self.AiInfo.available_ranges
+
+    def setAoRange(self, range):
         """Sets the AI Range to one of the ranges in enums.ULRange"""
-		set_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.DACRANGE, range)
+        set_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.DACRANGE, range)
         self.AoRange = range
 
     def getAoRangeIndex(self):
-        """Returns the id of the current AiRange in the list of self.AiInfo.get_ranges(self.AiMode)"""
-		return self.AoRange._value
+        """Returns the id of the current AiRange in the list of avaible ranges"""
+        return self.AoInfo.available_ranges.index(self.AoRange)
 
     def getAoRange(self):
         """Returns the current range of the DAQ"""
         self.AoRange = enums.ULRange(get_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.DACRANGE))
-		return self.AoRange
+        return self.AoRange
 
     def AIn(self, channel = 0):
         """Reads input analog data from specified channel - returns value in volts"""
@@ -246,8 +200,8 @@ class DAQ:
         return data
 
     def AOut(self, data, channel=0):
-		"""Write output analog data to the specified channel.  Value is in volts"""
-		if channel > self.number_of_channels:
+        """Write output analog data to the specified channel.  Value is in volts"""
+        if channel > self.number_of_channels:
             raise ValueError("channel index requested is higher than number of channels")
         if channel < 0:
             raise ValueError("channel index must be 0 or positive")
@@ -258,20 +212,27 @@ class DAQ:
     def DOut(self, data, channel=0, port=enums.DigitalPortType.FIRSTPORTA):
         """Write output digital data to specified channel"""
         # Look up port in DioInfo - will raise value error if port doesn't exist
-        port_to_write = self.DioInfo.port_types[port.value]
+        if port == enums.DigitalPortType.FIRSTPORTA:
+            port_n = 0
+        elif port == enums.DigitalPortType.FIRSTPORTB:
+            port_n = 1
+        elif port == enums.DigitalPortType.AUXPORT:
+            # Guess the AUXPORT is the only one on hardware with it - we don't have any
+            port_n = 0
+        port_info = self.DioInfo.port_info[port_n]
 
         # Configure port
-        d_config_port(self.boardnum, port_to_write, enums.DigitalDirection.OUTPUT)
+        d_config_port(self.boardnum, port_info.type, enums.DigitalIODirection.OUT)
 
         # Writes output for bit
-        d_bit_out(self.boardnum, port_to_write, channel, data)
+        d_bit_out(self.boardnum, port_info.type, channel, data)
 
     def AInScan(self, low_channel, high_channel, rate, samples_per_channel, scan_time = None):
         """Runs a scan across multiple channels, with multiple samples per channel.  Returns a numpy array of
         shape (samples_per_channel, channel_count)"""
         # Verify that the specified device supports hardware pacing for analog input.
-        if not self.AiInfo.has_pacer():
-            raise Exception('Error: The specified DAQ device does not support hardware paced analog input')
+        if not self.AiInfo.supports_scan:
+            raise Exception('Error: The specified DAQ device does not support scanning analog inputs')
 
         # Verify the high channel does not exceed the number of channels, low channel is
         #0 or positive and set the channel count.
@@ -282,16 +243,16 @@ class DAQ:
         channel_count = high_channel - low_channel + 1
 
         # Allocate a buffer to receive the data.
-        total_count = channel_count*samples_per_channel
+        total_count = samples_per_channel*channel_count
         data = scaled_win_buf_alloc(total_count)
+        ctypes_array = memhandle_as_ctypes_array_scaled(data)
 
         # Set up the scan options
-        scan_options = (enums.ScanOption.CONTINUOUS | enums.ScanOption.SCALEDATA  | enums.ScanOption.BACKGROUND)
+        scan_options = (enums.ScanOptions.CONTINUOUS | enums.ScanOptions.SCALEDATA  | enums.ScanOptions.BACKGROUND)
 
         # Start the acquisition.
-        a_in_scan(self.boardnum, low_channel, high_channel, samples_per_channel,
-                                        rate, data, self.AiRange,
-                                        scan_options)
+        a_in_scan(self.boardnum, low_channel, high_channel, total_count,
+                                        rate, self.AiRange, data, scan_options)
 
         status, curr_count, curr_index = get_status(
                     self.boardnum, enums.FunctionType.AIFUNCTION)
@@ -306,11 +267,11 @@ class DAQ:
             if curr_count >= total_count:
                 break
 
-
-
         stop_background(self.boardnum, enums.FunctionType.AIFUNCTION)
-
-        d = np.array(data)
+        eng_values = []
+        for i in range(total_count):
+            eng_values.append(ctypes_array[i])
+        d = np.array(eng_values)
         win_buf_free(data)
         d = d.reshape((samples_per_channel, channel_count))
 

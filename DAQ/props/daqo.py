@@ -5,7 +5,7 @@ from mcculw import ul
 from mcculw.enums import FunctionType, InfoType, BoardInfo, ChannelType
 from mcculw.ul import ULError
 
-from examples.props.propsbase import Props
+from props.propsbase import Props
 
 
 class DaqOutputProps(Props):

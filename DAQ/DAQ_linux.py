@@ -1,11 +1,11 @@
 ##################################################
 #                                                #
 # Driver for DAQ devices using the MCC UL        #
-# for linux										 #
-#												 #
+# for linux                                      #
+#                                                #
 # Import this via the DAQ.py wrapper that        #
 # selects which of DAQ_windows and DAQ_linux to  #
-# import.										 #
+# import.                                        #
 #                                                #
 # Larry Gardner, July 2018                       #
 #                                                #
@@ -17,84 +17,136 @@ import numpy as np
 import time
 
 class DAQ:
-    def __init__(self, AiMode=AiInputMode.DIFFERENTIAL):
+    def __init__(self, boardnum=0, AiMode=AiInputMode.DIFFERENTIAL, AiRange=enums.ULRange.BIP5VOLTS, autoConnect=True, verbose=True):
+        """Create the DAQ device, and if <autoConnect>, automatically connect to
+        <boardnum>"""
         self.devices = None
+        self.daq_device = None
+        self.boardnum = None
+        self.verbose = verbose
 
         self.interface_type = InterfaceType.USB
         self.AiMode = AiMode
-        self.AiRange = 0
+        self.AiInfo = None
+        self.AoInfo = None
+        self.DioInfo = None
+        self.AiRange = AiRange
+        self.AoRange = None
+
+        # Time to sleep between checks in AInScan
         self.sleepTime = 0.01
 
+        if autoConnect:
+            self.connect(boardnum)
+
     def listDevices(self):
+        """List DAQ devices connected to this machine"""
         try:
             self.devices = get_daq_device_inventory(self.interface_type)
             self.number_of_devices = len(self.devices)
             if self.number_of_devices == 0:
                 raise Exception('Error: No DAQ devices found')
-            print("Found {:d} DAQ device(s): ".format(self.number_of_devices))
-            for i in range(self.number_of_devices):
-                print("    {:s} ({:s})".format(self.devices[i].product_name, self.devices[i].unique_id))
+            if self.verbose:
+                print("Found {:d} DAQ device(s): ".format(self.number_of_devices))
+                for i in range(self.number_of_devices):
+                    print("    {:s} ({:s})".format(self.devices[i].product_name, self.devices[i].unique_id))
         except (KeyboardInterrupt, ValueError):
             print("Could not find DAQ device(s).")
 
-    def connect(self,Boardnum = 0):
-        # Connects to DAQ device
+    def connect(self, boardnum=0):
+        """Connects to DAQ device <boardnum>.  If device is already connected,
+        this will access that device.
+
+        Sets self.daq_device to the resulting uldaq object."""
         try:
             self.devices = get_daq_device_inventory(self.interface_type)
-            self.daq_device = DaqDevice(self.devices[Boardnum])
+            self.daq_device = DaqDevice(self.devices[boardnum])
             # Connect to DAQ device
             descriptor = self.daq_device.get_descriptor()
             self.daq_device.connect()
-            print("Connected to {:s}".format(descriptor.dev_string))
+            if self.verbose:
+                print("Connected to {:s}".format(descriptor.dev_string))
         except (KeyboardInterrupt, ValueError):
             print("Could not connect DAQ device.")
 
         # Get some basic info on the device
-        self.ai_device = self.daq_device.get_ai_device()
-        self.ai_info = self.ai_device.get_info()
+        self.AiDevice = self.daq_device.get_ai_device()
+        self.getAiInfo()
+        self.AoDevice = self.daq_device.get_ao_device()
+        self.getAoInfo()
+        self.DioDevice = self.daq_device.get_dio_device()
+        self.getDioInfo()
+
+        # Set the Ai Input mode and range to that specified in __init__
+        self.setAiMode(self.AiMode)
+        self.setAiRange(self.AiRange)
+
         self.numChannels()
-
-        self.ao_device = self.daq_device.get_ao_device()
-        self.ao_info = self.ao_device.get_info()
-
-        self.dio_device = self.daq_device.get_dio_device()
-
-        # Get the port types for the device(AUXPORT, FIRSTPORTA, ...)
-        self.dio_info = self.dio_device.get_info()
-        self.port_types = self.dio_info.get_port_types()
-
+        self.getAiRange()
+        self.getAoRange()
 
     def disconnect(self, Boardnum = 0):
         # Disconnects DAQ device
         if self.daq_device:
             if self.daq_device.is_connected():
                 self.daq_device.disconnect()
-                print("DAQ device {:s} is disconnected.".format(self.device[Boardnum].product_name))
-            print("DAQ device {:s}".format(self.device[Boardnum].product_name))
+                if verbose:
+                    print("DAQ device {:s} is disconnected.".format(self.device[Boardnum].product_name))
+            if self.verbose:
+                print("DAQ device {:s}".format(self.device[Boardnum].product_name))
             self.daq_device.release()
 
     def name(self, index = 0):
-        name = self.device[index].product_name
+        if self.devices != None:
+            name = self.devices[index].product_name
+        else:
+            name = None
         return name
 
     def numChannels(self):
-        """Use the SINGLE_ENDED input mode to get the number of channels.
-        # If the number of channels is greater than zero, then the device
-        # supports the SINGLE_ENDED input mode; otherwise, the device only
-        # supports the DIFFERENTIAL input mode."""
-        self.number_of_channels = self.ai_info.get_num_chans_by_mode(AiInputMode.SINGLE_ENDED)
-        if self.number_of_channels > 0:
-            if self.AiMode != AiInputMode.DIFFERENTIAL:
-                self.AiMode = AiInputMode.SINGLE_ENDED
-        else:
-            self.AiMode = AiInputMode.DIFFERENTIAL
+        """Get the number of channels in the current AI Mode"""
+        self.number_of_channels = self.AiInfo.get_num_chans_by_mode(self.AiMode)
 
-    def setAiRange(self, r):
+    def getAiInfo(self):
+        """Get the AI Info object"""
+        self.AiInfo = self.AiDevice.get_info()
+
+    def getAoInfo(self):
+        """Get the AO Info object"""
+        self.AoInfo = self.AoDevice.get_info()
+
+    def getDioInfo(self):
+        """Get the DIO Info object"""
+        self.DioInfo = self.DioDevice.get_info()
+
+    def setAiMode(self, mode):
+        """Set the AiMode to one of the modes in AnalogInputMode"""
+        self.AiMode = mode
+        self.getAiInfo()
+        self.numChannels()
+        self.setAiRange(self.AiInfo.get_ranges()[0])
+        self.getAiRange()
+
+    def getAiMode(self):
+        """Get the AiMode"""
+        return self.AiMode
+
+    def setAiRange(self, range):
+        """Set the AI Range to one of the members of Range class"""
+        self.AiRange = range
+
+    def getAiRange(self):
+        """Get the AI Range"""
+        return self.AiRange
+
+    def setAiRangeIndex(self, r):
         """Sets the AI Range to the index r in the list of ranges returned by
         self.AiInfo.get_ranges(self.AiMode)"""
         ranges = self.getAiRanges()
         if r < len(ranges):
             self.AiRange = ranges[r]
+        else:
+            raise ValueError("Specified range index not found")
 
     def getAiRangeIndex(self):
         """Returns the index of the current AiRange in the list of
@@ -104,32 +156,66 @@ class DAQ:
 
     def getAiRanges(self):
         """Returns the list of valid ranges for this DAQ"""
-        return self.ai_info.get_ranges(self.AiMode)
+        return self.AiInfo.get_ranges(self.AiMode)
+
+    def setAoRange(self, range):
+        """Sets the AO Range to one of the members of the Range class"""
+        self.AoRange = range
+
+    def getAoRange(self):
+        """Returns the current AO Range"""
+        return self.AoRange
+
+    def setAiRangeIndec(self, r):
+        """Sets the AO Range to one of the ranges returned by AoGetRanges()"""
+        ranges = self.getAoInfoRanges()
+        if r < len(ranges):
+            self.AoRange = ranges[r]
+        else:
+            raise ValueError("Specified range index not found")
+
+    def getAiRangeIndex(self):
+        """Returns the index of the current AoRange in the list of ranges
+        returned by self.getAoRanges()"""
+        ranges = self.getAoRanges()
+        return ranges.index(self.AoRange)
+
+    def getAiRanges(self):
+        """Returns the list of available AoRanges"""
+        self.AoInfo.get_ranges()
+
 
     def AIn(self, channel = 0):
         """Reads input analog data from specified channel"""
-        data = self.ai_device.a_in(channel, self.AiMode, self.AiRange, AInFlag.DEFAULT)
+        data = self.AiDevice.a_in(channel, self.AiMode, self.AiRange, AInFlag.DEFAULT)
         return data
 
-    def AOut(self, data, channel = 0):
+    def AOut(self, data, channel=0):
         """Write output analog data to specified channel"""
-        self.ao_device.a_out(channel, output_range, AOutFlag.DEFAULT, data)
+        self.AoDevice.a_out(channel, self.AoRange, AOutFlag.DEFAULT, data)
 
-    def DOut(self, data, channel = 0):
+    def DOut(self, data, channel=0, port=enums.DigitalPortType.FIRSTPORTA):
         """Write output digital data to specified channel"""
-        self.port_to_write = self.port_types[0]
+        if port == enums.DigitalPortType.FIRSTPORTA:
+            port_n = 0
+        elif port == enums.DigitalPortType.FIRSTPORTB:
+            port_n = 1
+        elif port == enums.DigitalPortType.AUXPORT:
+            # Guess the AUXPORT is the only one on hardware with it - we don't have any
+            port_n = 0
+        port_info = self.DioInfo.port_info[port_n]
 
         # Configure port
-        self.dio_device.d_config_port(self.port_to_write, DigitalDirection.OUTPUT)
+        self.DioDevice.d_config_port(port_info, DigitalDirection.OUTPUT)
 
         # Writes output for bit
-        self.dio_device.d_bit_out(self.port_to_write, channel, data)
+        self.DioDevice.d_bit_out(port_info, channel, data)
 
     def AInScan(self, low_channel, high_channel, rate, samples_per_channel, scan_time = None):
         """Runs a scan across multiple channels, with multiple samples per channel.  Returns a numpy array of
         shape (samples_per_channel, channel_count)"""
         # Verify that the specified device supports hardware pacing for analog input.
-        if not self.ai_info.has_pacer():
+        if not self.AiInfo.has_pacer():
             raise Exception('Error: The specified DAQ device does not support hardware paced analog input')
 
         # Verify the high channel does not exceed the number of channels, and
@@ -142,7 +228,7 @@ class DAQ:
         data = create_float_buffer(channel_count, samples_per_channel)
 
         # Start the acquisition.
-        self.ai_device.a_in_scan(low_channel, high_channel, self.AiMode, self.AiRange, samples_per_channel,
+        self.AiDevice.a_in_scan(low_channel, high_channel, self.AiMode, self.AiRange, samples_per_channel,
                                         rate, ScanOption.CONTINUOUS, AInScanFlag.DEFAULT, data)
 
         start_time = time.time()
@@ -153,7 +239,7 @@ class DAQ:
 
         while (time.time() - start_time) <= scan_time:
             # Get the status of the background operation
-            status, transfer_status = self.ai_device.get_scan_status()
+            status, transfer_status = self.AiDevice.get_scan_status()
             index = transfer_status.current_index
 
             # Check to see if we are done
@@ -165,7 +251,7 @@ class DAQ:
         if self.daq_device:
             # Stop the acquisition if it is still running.
             if status == ScanStatus.RUNNING:
-                self.ai_device.scan_stop()
+                self.AiDevice.scan_stop()
 
         d = np.array(data)
         d = d.reshape((samples_per_channel, channel_count))
@@ -177,7 +263,7 @@ if __name__ == "__main__":
     daq = DAQ()
     daq.listDevices()
     daq.connect()
-    daq.setAiRange(5)
+    daq.setAiRange(Range.BIP5VOLTS)
     data = daq.AIn(0)
     print(data)
     data = daq.AInScan(0,1,10000,1000,1)
