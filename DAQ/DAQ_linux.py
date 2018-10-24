@@ -85,16 +85,22 @@ class DAQ:
         self.getAiRange()
         self.getAoRange()
 
-    def disconnect(self, Boardnum = 0):
-        # Disconnects DAQ device
-        if self.daq_device:
+    def disconnect(self):
+        """Disconnects DAQ device"""
+        if self.daq_device != None:
             if self.daq_device.is_connected():
                 self.daq_device.disconnect()
-                if verbose:
-                    print("DAQ device {:s} is disconnected.".format(self.device[Boardnum].product_name))
-            if self.verbose:
-                print("DAQ device {:s}".format(self.device[Boardnum].product_name))
-            self.daq_device.release()
+                self.daq_device.release()
+                self.daq_device = None
+                if self.verbose:
+                    print("DAQ device {:s} is disconnected.".format(self.devices[self.boardnum].product_name))
+            else:
+                if self.verbose:
+                    print("DAQ device {:s} not connected".format(self.devices[self.boardnum].product_name))
+        self.daq_device = None
+        self.boardnum = None
+        self.number_of_channels = None
+
 
     def name(self, index = 0):
         if self.devices != None:
@@ -109,14 +115,20 @@ class DAQ:
 
     def getAiInfo(self):
         """Get the AI Info object"""
+        if self.daq_device == None:
+            raise RuntimeError("DAQ device is not connected")
         self.AiInfo = self.AiDevice.get_info()
 
     def getAoInfo(self):
         """Get the AO Info object"""
+        if self.daq_device == None:
+            raise RuntimeError("DAQ device is not connected")
         self.AoInfo = self.AoDevice.get_info()
 
     def getDioInfo(self):
         """Get the DIO Info object"""
+        if self.daq_device == None:
+            raise RuntimeError("DAQ device is not connected")
         self.DioInfo = self.DioDevice.get_info()
 
     def setAiMode(self, mode):
@@ -154,6 +166,14 @@ class DAQ:
         ranges = self.getAiRanges()
         return ranges.index(self.AiRange)
 
+    def setAiRangeValue(self, v):
+        """Set the AiRange by value"""
+        self.setAiRange(Range(v))
+
+    def getAiRangeValue(self):
+        """Set the value of the AiRange"""
+        return self.getAiRange().value
+
     def getAiRanges(self):
         """Returns the list of valid ranges for this DAQ"""
         return self.AiInfo.get_ranges(self.AiMode)
@@ -187,15 +207,27 @@ class DAQ:
 
     def AIn(self, channel = 0):
         """Reads input analog data from specified channel"""
+        if self.daq_device == None:
+            raise RuntimeError("DAQ device is not connected")
+        if channel > self.number_of_channels:
+            raise ValueError("channel index requested is higher than number of channels")
+        if channel < 0:
+            raise ValueError("channel index must be 0 or positive")
         data = self.AiDevice.a_in(channel, self.AiMode, self.AiRange, AInFlag.DEFAULT)
         return data
 
     def AOut(self, data, channel=0):
         """Write output analog data to specified channel"""
+        if self.daq_device == None:
+            raise RuntimeError("DAQ device is not connected")
+        if channel < 0:
+            raise ValueError("channel index must be 0 or positive")
         self.AoDevice.a_out(channel, self.AoRange, AOutFlag.DEFAULT, data)
 
     def DOut(self, data, channel=0, port=enums.DigitalPortType.FIRSTPORTA):
         """Write output digital data to specified channel"""
+        if self.daq_device == None:
+            raise RuntimeError("DAQ device is not connected")
         if port == enums.DigitalPortType.FIRSTPORTA:
             port_n = 0
         elif port == enums.DigitalPortType.FIRSTPORTB:

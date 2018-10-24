@@ -13,7 +13,6 @@
 import sys
 import os
 import time
-import visa
 import numpy as np
 import DAQ
 import matplotlib.pyplot as plt
@@ -98,9 +97,7 @@ class IV:
     def initDAQ(self):
         """Lists available DAQ devices, connects the selected board and sets the AI Range"""
         self.daq = DAQ.DAQ()
-        self.daq.listDevices()
-        self.daq.connect(self.Boardnum)
-        self.daq.setAiRange(self.AiRange)
+        self.daq.setAiRangeValue(self.AiRange)
 
 
     def bias(self, bias):
@@ -128,15 +125,15 @@ class IV:
 
         This should be overidden when subclassing IV.py to to get any additional
         data required"""
-        
+
         data = self.getRawData()
-        
+
         # Get the output voltage/current data
         Vdata = self.calcV(data[self.V_channel])
         Idata = self.calcI(data[self.I_channel])
 
         return Vdata, Idata
-        
+
     def getRawData(self):
         """Gets the voltages from the DAQ"""
         # Sets proper format for low and high channels to scan over
@@ -144,7 +141,7 @@ class IV:
         low_channel, high_channel = min(channels), max(channels)
         data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
         return np.mean(data[:, self.V_channel]), np.mean(data[:, self.I_channel])
-        
+
 
     def calcV(self, volts):
         """Converts ADC reading in volts to bias voltage in mV"""
@@ -164,7 +161,7 @@ class IV:
             if self.verbose:
                 print("DAC Minimum output voltage of 0.00 V exceeded - clipping to min")
             volt = 0.0
-            
+
         # Sets bias to specified voltage
         self.daq.AOut(volt, self.Out_channel)
         time.sleep(self.settleTime)
