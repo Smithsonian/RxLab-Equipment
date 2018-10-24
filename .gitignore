@@ -3,3 +3,4 @@ Applications
 *.xlsx
 *__pycache__*
 *.pyc
+/DAQ/*.pyc
