@@ -323,6 +323,8 @@ if __name__ == "__main__":
         test.step = float(sys.argv[4])
         if len(sys.argv) == 6:
             test.use = sys.argv[5]
+            test.readFile()
+            test.initDAQ()
     else:
         test.save_name = input("Output file name: ")
         test.vmin = float(input("Minimum voltage [mV]: "))
