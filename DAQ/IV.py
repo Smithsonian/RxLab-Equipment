@@ -10,10 +10,11 @@
 # code                                           #
 ##################################################
 
+from __future__ import print_function, division
+
 import sys
 import os
 import time
-import visa
 import numpy as np
 import DAQ
 import matplotlib.pyplot as plt
@@ -95,12 +96,22 @@ class IV:
         if self.vmax > self.Vs_max:
             self.vmax = self.Vs_max
 
+    def sort(self):
+        """Make sure that vmax is greater than vmin"""
+        if self.vmin > self.vmax:
+            v = self.vmin
+            self.vmin = self.vmax
+            self.vmax = v
+            self.reverseSweep = not self.reverseSweep
+        if self.step < 0:
+            self.step = -self.step
+            self.reverseSweep = not self.reverseSweep
+
+
     def initDAQ(self):
         """Lists available DAQ devices, connects the selected board and sets the AI Range"""
         self.daq = DAQ.DAQ()
-        self.daq.listDevices()
-        self.daq.connect(self.Boardnum)
-        self.daq.setAiRange(self.AiRange)
+        self.daq.setAiRangeValue(self.AiRange)
 
 
     def bias(self, bias):
@@ -128,15 +139,15 @@ class IV:
 
         This should be overidden when subclassing IV.py to to get any additional
         data required"""
-        
+
         data = self.getRawData()
-        
+
         # Get the output voltage/current data
         Vdata = self.calcV(data[self.V_channel])
         Idata = self.calcI(data[self.I_channel])
 
         return Vdata, Idata
-        
+
     def getRawData(self):
         """Gets the voltages from the DAQ"""
         # Sets proper format for low and high channels to scan over
@@ -144,7 +155,7 @@ class IV:
         low_channel, high_channel = min(channels), max(channels)
         data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
         return np.mean(data[:, self.V_channel]), np.mean(data[:, self.I_channel])
-        
+
 
     def calcV(self, volts):
         """Converts ADC reading in volts to bias voltage in mV"""
@@ -164,9 +175,9 @@ class IV:
             if self.verbose:
                 print("DAC Minimum output voltage of 0.00 V exceeded - clipping to min")
             volt = 0.0
-            
+
         # Sets bias to specified voltage
-        self.daq.AOut(volt, self.Out_channel)
+        self.daq.AOut(volt, channel=self.Out_channel)
         time.sleep(self.settleTime)
 
     def sweep(self):
@@ -185,13 +196,16 @@ class IV:
         This should be overidden when subclassing IV.py to create a new sweep
         type"""
         # Sanity check values to make sure that requested bias range is
-        # within bias limits
+        # within bias limits and that vmin, vmax and step values are sane
         self.crop()
+        self.sort()
 
         print("Preparing for sweep...")
         # Calculate sweep values
         self.BiasPts = np.arange(self.vmin, self.vmax+self.step, self.step)
         if self.reverseSweep:
+            if self.verbose:
+                print("Flipping BiasPts")
             self.BiasPts = np.flipud(self.BiasPts)
 
         # Prepares for data collection
@@ -263,7 +277,7 @@ class IV:
         if self.verbose:
             print("\nWriting data to spreadsheet...")
 
-        out = open(str(self.save_name), 'w')
+        out = open(self.save_name, 'w')
 
         # Write a header describing the data
         out.write("# Bias (mV)\t\tVoltage (mV)\t\tCurrent (mA)\n")
@@ -309,19 +323,14 @@ if __name__ == "__main__":
         test.step = float(sys.argv[4])
         if len(sys.argv) == 6:
             test.use = sys.argv[5]
+            test.readFile()
+            test.initDAQ()
     else:
         test.save_name = input("Output file name: ")
         test.vmin = float(input("Minimum voltage [mV]: "))
         test.vmax = float(input("Maximum voltage [mV]: "))
-        test.step = float(input("Step [mV]: "))
-        if test.step <= 0:
-            while test.step <= 0:
-                print("Step size must be greater than 0.")
-                test.step = float(input("Step [mV]: "))
 
-    # Set up the IV object
-    test.readFile()
-    test.initDAQ()
+        test.step = float(input("Step [mV]: "))
 
     # Run a sweep
     test.sweep()
@@ -331,10 +340,13 @@ if __name__ == "__main__":
     plt.ion()
     test.plot()
     # Wait until the plot is done
-    input("Press [enter] to continue.")
+    try:
+        input("Press [enter] to continue.")
+    except SyntaxError:
+        pass
 
 
     # Close down the IV object cleanly, releasing the DAQ
     del test
 
-    print("\nEnd.")
+    print("End.")

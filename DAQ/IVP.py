@@ -6,6 +6,8 @@
 # Paul Grimes, August 2018                       #
 ##################################################
 
+from __future__ import print_function, division
+
 import sys
 import os
 import time
@@ -17,19 +19,21 @@ import PowerMeter as PM
 import gpib
 
 
+
+
 class IVP(IV.IV):
     def __init__(self, use="IV.use", verbose=False):
         super().__init__(use, verbose)
-        
+
         self.pm = None
         self.settleTime = 0.1
-        
+
         self.initPM()
 
     def __delete__(self):
         self.endPM()
         super().__delete__()
-        
+
     def readFile(self):
         super().readFile()
         self.pm_address = self._use_lines[16].split()[0]
@@ -67,11 +71,11 @@ class IVP(IV.IV):
         data = self.getData()
 
         if self.verbose:
-            print("New Bias Point:")
+            print("New Bias Point: {:.4g} mV".format(bias)")
             if len(data) == 3:
-                print("  Voltage: {:f} mV, Current: {:f} mA, IF Power: {:f} W".format(data[0], data[1], data[2]))
+                print("  Voltage: {:.4g} mV, Current: {:.4g} mA, IF Power: {:.4g} W".format(data[0], data[1], data[2]))
             else:
-                print("  Voltage: {:f} mV, Current: {:f} mA".format(data[0], data[1]))
+                print("  Voltage: {:.4g} mV, Current: {:.4g} mA".format(data[0], data[1]))
         return data
 
     def getData(self):
@@ -146,7 +150,7 @@ class IVP(IV.IV):
         self.ax2.plot(self.Vdata, self.Pdata, 'b-')
         self.ax2.set(ylabel="Power (W)")
         self.ax2.set(title="IV Sweep")
-        
+
     def plot(self, ion=True):
         """Plot the acquired data from the sweep.
         """
@@ -156,8 +160,8 @@ class IVP(IV.IV):
         self.plotIV()
         self.ax2 = self.ax.twinx()
         self.plotPV()
-        self.fig.show()    
-    
+        self.fig.show()
+
 if __name__ == "__main__":
     # This code runs a sweep from <vmax> to <vmin> with stepsize <step> and
     # saves the data to <save_name>
@@ -173,19 +177,13 @@ if __name__ == "__main__":
         test.step = float(sys.argv[4])
         if len(sys.argv) == 6:
             test.use = sys.argv[5]
+            test.readFile()
+            test.initDAQ()
     else:
         test.save_name = input("Output file name: ")
         test.vmin = float(input("Minimum voltage [mV]: "))
         test.vmax = float(input("Maximum voltage [mV]: "))
         test.step = float(input("Step [mV]: "))
-        if test.step <= 0:
-            while test.step <= 0:
-                print("Step size must be greater than 0.")
-                test.step = float(input("Step [mV]: "))
-
-    # Set up the IV object
-    test.readFile()
-    test.initDAQ()
 
     # Run a sweep
     test.sweep()
@@ -195,10 +193,13 @@ if __name__ == "__main__":
     plt.ion()
     test.plot()
     # Wait until the plot is done
-    input("Press [enter] to continue.")
+    try:
+        input("Press [enter] to continue.")
+    except SyntaxError:
+        pass
 
 
     # Close down the IV object cleanly, releasing the DAQ and PM
     del test
 
-    print("\nEnd.")
+    print("End.")

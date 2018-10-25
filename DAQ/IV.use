@@ -10,7 +10,7 @@
 0                !Channel for bias voltage output (Pin 13: Analog output 0)
 0                !Channel for voltage input (Pin 1: Analog input 0)
 1                !Channel for current input (Pin 2: Analog input 1)
-5                !Range for differential inputs - index in daq.get_ai_info.get_ranges(mode)
+0                !Range for differential inputs - values differ on Windows and Linux! 0 for ±5V on Windows, 6 on Linux
 2.003            !Output Voltage offset (V)
 0.0008            !Input Voltage offset (V)
 0.0              !Input Current offset (V)

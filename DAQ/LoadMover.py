@@ -2,19 +2,23 @@
 #                                                         #
 # Load Mover controls using a USB-1408FS-PLUS device.     #
 #                                                         #
-# Larry Gardner, July 2018                                #         
+# Larry Gardner, July 2018                                #
 #                                                         #
 ###########################################################
+
+from __future__ import print_function, division
 
 import DAQ
 import time
 import os
 
+
+
 class LoadMover:
     def __init__(self):
         self.board_number = 0
         self.bit_number = 7     # Control bit is at A7
-        self.ambload = 0        
+        self.ambload = 0
         self.coldload = 1
 
     def initDAQ(self):
@@ -22,7 +26,7 @@ class LoadMover:
         self.daq = DAQ.DAQ()
         self.daq.listDevices()
         self.daq.connect(self.board_number)
-    
+
     def move(self):
         os.system("clear")
         # Move arm via input
@@ -56,11 +60,10 @@ class LoadMover:
     def end(self):
         # Ends program and disconnects devices
         self.daq.disconnect()
-    
-    
+
+
 if __name__ == "__main__":
     lm = LoadMover()
     lm.initDAQ()
     lm.move_timed()
     lm.end()
-    
