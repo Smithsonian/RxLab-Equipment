@@ -15,13 +15,17 @@ from __future__ import print_function, division
 import sys
 import os
 import time
+import hjsonConfig
+import jsonmerge
 import numpy as np
 import DAQ
 import matplotlib.pyplot as plt
 
+import _IV_default_config
+
 
 class IV:
-    def __init__(self, use="IV.use", verbose=False):
+    def __init__(self, config=None, configFile="IV_config.hjson", verbose=False):
         """Create an IV object that can set a bias via the DAQ, read bias voltages
         and currents, and run a sweep over bias points."""
         self.verbose = verbose
@@ -30,7 +34,9 @@ class IV:
         self.reverseSweep = True
         self.settleTime = 0.01
         self._bias = 0.0
-        self.use = use
+
+        # Load the default config
+        self.config = _default_IV_config.config
 
         self.save_name = "iv.dat"
         self.vmin = 0.0
@@ -39,7 +45,13 @@ class IV:
 
         if self.vmin > self.vmax:
             self.vmin, self.vmax = self.vmax, self.vmin
-        self.readFile()
+
+        self.daq = DAQ.DAQ(autoConnect=False)
+
+        if configFile != None:
+            self.config = !!!!hjsonConfig.read(configFile)
+        if config != None:
+            self.setConfig(config)
         self.initDAQ()
 
     def __delete__(self):
@@ -47,43 +59,30 @@ class IV:
         self.endDAQ()
 
 
-    def readFile(self):
-        """Read the .use configuration file to set up the DAQ.
+    def processConfig(self):
+        """Process the configuration"""
+        # Try and parse any daq elements in the config file
+        try:
+            self.daq.setConfig(config=self.config["daq"])
+        except KeyError:
+            pass
 
-        This should be overridden to read any additional configuration values
-        when subclassing IV.py"""
-        # Opens use file and assigns corresponding parameters
-        if self.verbose:
-            print("\nUSE file: ",self.use)
-        f = open(self.use, 'r')
-        self._use_lines = f.readlines()
-        f.close()
-        self.readIVUse()
+        self.vOut_channel = self.config["vOut"]["channel"]
+        self.vOut_gain = self.config["vOut"]["gain"]
+        self.vOut_offset = self.config["vOut"]["offset"]
 
+        self.vIn_channel = self.config["vIn"]["channel"]
+        self.vIn_gain = self.config["vIn"]["gain"]
+        self.vIn_offset = self.config["vIn"]["offset"]
 
-    def readIVUse(self):
-        """Parse the lines of the use file relevant to IV DAQ setup"""
-        self.Vs_min = float(self._use_lines[0].split()[0])
-        self.Vs_max = float(self._use_lines[1].split()[0])
-        self.MaxDAC = float(self._use_lines[2].split()[0])
-        self.Rate = int(self._use_lines[3].split()[0])
-        self.Navg = int(self._use_lines[4].split()[0])
-        self.G_vOut = float(self._use_lines[5].split()[0])
-        self.G_v = float(self._use_lines[6].split()[0])
-        self.G_i = float(self._use_lines[7].split()[0])
-        self.Boardnum = int(self._use_lines[8].split()[0])
-        self.Out_channel = int(self._use_lines[9].split()[0])
-        self.V_channel = int(self._use_lines[10].split()[0])
-        self.I_channel = int(self._use_lines[11].split()[0])
-        self.AiRange = int(self._use_lines[12].split()[0])
-        # Bias range is +/- 15mV, DAQ output range is 0-5V. Voltage offset is required for Volt < 0.
-        self.offset_vOut = float(self._use_lines[13].split()[0])
-        self.offset_vIn = float(self._use_lines[14].split()[0])
-        self.offset_iIn = float(self._use_lines[15].split()[0])
+        self.iIn_channel = self.config["iIn"]["channel"]
+        self.iIn_gain = self.config["iIn"]["gain"]
+        self.iIn_offset = self.config["iIn"]["offset"]
 
-    def voltOut(self, bias):
-        """Converts bias voltage to output voltage from DAQ"""
-        return bias * self.G_vOut + self.offset_vOut
+        self.Vs_min = self.config["Vmin"]
+        self.Vs_max = self.config["Vmax"]
+        self.Rate = self.config["rate"]
+        self.Navg = self.config["average"]
 
     def crop(self):
         # Limits set voltages to max and min sweep voltages
@@ -110,7 +109,7 @@ class IV:
 
     def initDAQ(self):
         """Lists available DAQ devices, connects the selected board and sets the AI Range"""
-        self.daq = DAQ.DAQ()
+
         self.daq.setAiRangeValue(self.AiRange)
 
 
@@ -132,38 +131,7 @@ class IV:
         """Sets the bias point to request value in mV"""
         # Converts desired bias amount [mV] to DAQ output voltage value [V]
         self._bias = bias
-        self.setVoltOut(self.voltOut(self._bias))
-
-    def getData(self):
-        """Gets V and I data, and returns it as a tuple
-
-        This should be overidden when subclassing IV.py to to get any additional
-        data required"""
-
-        data = self.getRawData()
-
-        # Get the output voltage/current data
-        Vdata = self.calcV(data[self.V_channel])
-        Idata = self.calcI(data[self.I_channel])
-
-        return Vdata, Idata
-
-    def getRawData(self):
-        """Gets the voltages from the DAQ"""
-        # Sets proper format for low and high channels to scan over
-        channels = [self.V_channel, self.I_channel]
-        low_channel, high_channel = min(channels), max(channels)
-        data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
-        return np.mean(data[:, self.V_channel]), np.mean(data[:, self.I_channel])
-
-
-    def calcV(self, volts):
-        """Converts ADC reading in volts to bias voltage in mV"""
-        return (volts - self.offset_vIn) * 1000 / self.G_v
-
-    def calcI(self, volts):
-        """Converts ADC reading in volts to bias current in mA"""
-        return (volts - self.offset_iIn) / self.G_i
+        self.setVoltOut(self.calcBias(self._bias))
 
     def setVoltOut(self, volt):
         """Sets the DAC output voltage and waits to settle"""
@@ -179,6 +147,40 @@ class IV:
         # Sets bias to specified voltage
         self.daq.AOut(volt, channel=self.Out_channel)
         time.sleep(self.settleTime)
+
+    def getData(self):
+        """Gets V and I data, and returns it as a tuple
+
+        This should be overidden when subclassing IV.py to to get any additional
+        data required"""
+
+        data = self.getRawData()
+
+        # Get the output voltage/current data
+        Vdata = self.calcV(data[self.vIn_channel])
+        Idata = self.calcI(data[self.iIn_channel])
+
+        return Vdata, Idata
+
+    def getRawData(self):
+        """Gets the voltages from the DAQ"""
+        # Sets proper format for low and high channels to scan over
+        channels = [self.vIn_channel, self.iIn_channel]
+        low_channel, high_channel = min(channels), max(channels)
+        data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
+        return np.mean(data[:, self.vIn_channel]), np.mean(data[:, self.iIn_channel])
+
+    def calcBias(self, bias):
+        """Converts bias voltage to output voltage from DAQ"""
+        return bias * self.vOut_gain + self.vOut_offset
+
+    def calcV(self, volts):
+        """Converts ADC reading in volts to bias voltage in mV"""
+        return (volts - self.vIn_offset) * 1000 / self.vIn_gain
+
+    def calcI(self, volts):
+        """Converts ADC reading in volts to bias current in mA"""
+        return (volts - self.iIn_offset) / self.iIn_gain
 
     def sweep(self):
         """Short cut to prep, run and end the sweep"""
@@ -220,7 +222,8 @@ class IV:
             if self.verbose:
                 print("\nChanging voltage to minimum...")
 
-        self.setVoltOut(self.voltOut(self.BiasPts[0]))
+        self._oldBias = self._bias
+        self.setBias(self.BiasPts[0])
 
 
     def runSweep(self):
@@ -232,7 +235,7 @@ class IV:
             print("\nRunning sweep...")
 
         # Sets proper format for low and high channels to scan over
-        channels = [self.V_channel, self.I_channel]
+        channels = [self.vIn_channel, self.iIn_channel]
         low_channel, high_channel = min(channels), max(channels)
 
         # Print a header for intermediate output
@@ -241,7 +244,7 @@ class IV:
 
         # Carry out the sweep
         for index, bias in enumerate(self.BiasPts):
-            self.setVoltOut(self.voltOut(bias))
+            self.setBias(bias)
 
             # Collects data from new bias point
             data = self.getData()
@@ -259,7 +262,7 @@ class IV:
 
         This should be overidden when subclassing IV.py to create a new sweep
         type"""
-        self.setBias(self._bias)
+        self.setBias(self._oldBias)
         if self.verbose:
             print("Sweep is over.  Bias reset to {:.3f} mV.".format(self._bias))
 

@@ -1,5 +1,6 @@
 # Bias box configuration file
 {
+    "config-file":"IV_default.hjson",
     "daq":{
         #"config-file":"DAQ.hjson",  # If this is present and not "None",
                                      # read the DAQ config from a file
