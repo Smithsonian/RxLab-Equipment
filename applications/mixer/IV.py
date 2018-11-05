@@ -16,7 +16,7 @@ import sys
 import os
 import time
 import numpy as np
-import DAQ
+import drivers.DAQ.DAQ as DAQ
 import matplotlib.pyplot as plt
 
 

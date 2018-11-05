@@ -13,9 +13,9 @@ import os
 import time
 import visa
 import numpy as np
-import IV
+from .IV import IV
 import matplotlib.pyplot as plt
-import PowerMeter as PM
+import drivers.Instrument.HP436A as PM
 import gpib
 
 
@@ -71,7 +71,7 @@ class IVP(IV.IV):
         data = self.getData()
 
         if self.verbose:
-            print("New Bias Point: {:.4g} mV".format(bias)")
+            print("New Bias Point: {:.4g} mV".format(bias))
             if len(data) == 3:
                 print("  Voltage: {:.4g} mV, Current: {:.4g} mA, IF Power: {:.4g} W".format(data[0], data[1], data[2]))
             else:

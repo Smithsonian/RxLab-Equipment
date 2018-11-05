@@ -6,7 +6,7 @@ from mcculw.enums import BoardInfo, InfoType, ULRange, FunctionType,\
     TrigType, ScanOptions, ErrorCode
 from mcculw.ul import ULError
 
-from props.propsbase import Props
+from .propsbase import Props
 
 
 class AnalogInputProps(Props):
@@ -15,7 +15,7 @@ class AnalogInputProps(Props):
 
     This class is used to provide hardware information for the library
     examples, and may change hardware values. It is recommended that the
-    values provided by this class be hard-coded in production code. 
+    values provided by this class be hard-coded in production code.
     """
 
     def __init__(self, board_num):

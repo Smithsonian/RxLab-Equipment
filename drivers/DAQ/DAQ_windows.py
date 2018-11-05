@@ -19,7 +19,7 @@
 from __future__ import print_function, division
 
 from mcculw.ul import *
-from props import ai, ao, digital
+from .props import ai, ao, digital
 from mcculw import enums
 from time import sleep
 import numpy as np
@@ -276,9 +276,9 @@ class DAQ:
             high_channel = self.number_of_channels - 1
         if low_channel < 0:
             low_channel = 0
-            
+
         channel_count = high_channel - low_channel + 1
-        
+
         # Allocate a buffer to receive the data.
         total_count = samples_per_channel*channel_count
         data = scaled_win_buf_alloc(total_count)
@@ -314,7 +314,7 @@ class DAQ:
         d = d.reshape((samples_per_channel, channel_count))
 
         win_buf_free(data)
-            
+
         return d
 
 

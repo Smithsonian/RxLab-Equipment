@@ -1,4 +1,4 @@
-import Instrument
+from ..Instrument import Instrument
 import numpy as np
 
 def dBdeg2complex(amp, phase):
@@ -177,11 +177,11 @@ class HP8508A(Instrument.Instrument):
         <meas> can be concatenated with comma separation
         '''
         if meas==None:
-            if self.mode != "UNKNOWN":               
+            if self.mode != "UNKNOWN":
                 meas = self.mode
             else:
                 meas = "APOW"
-                
+
         # Trigger the measurement if required
         if self.triggersource == "BUS" and self.triggered == False:
             self.trigger()
