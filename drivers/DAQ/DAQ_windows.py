@@ -24,6 +24,10 @@ from mcculw import enums
 from time import sleep
 import numpy as np
 import ctypes
+import mergejson
+import hjson
+
+import _default_DAQ_config
 
 
 
@@ -42,27 +46,71 @@ class DAQ:
         connect DAQ board, rather than the Daq object.  In combination with self.boardnum,
         this contains all the information available for connnections.
     """
-    def __init__(self, boardnum=0, AiMode=enums.AnalogInputMode.DIFFERENTIAL, AiRange=enums.ULRange.BIP5VOLTS, verbose=True, autoConnect=True):
+    def __init__(self, config=None, configFile="DAQ_config.hjson", verbose=False, autoConnect=True):
         """Create the DAQ device, and if autoConnect, automatically connect to
         board number 0"""
+        # Load the default config
+        self.setConfig(_default_DAQ_config.config)
+
         self.devices = None
         self.daq_device = None
         self.boardnum = None
         self.verbose = verbose
 
         self.interface_type = enums.InterfaceType.USB
-        self.AiMode = AiMode
+        self.AiMode = None
         self.AiInfo = None
         self.AoInfo = None
         self.DioInfo = None
-        self.AiRange = AiRange
+        self.AiRange = None
         self.AoRange = None
-
         # Time to sleep between checks in AInScan
-        self.sleepTime = 0.01
+        self.sleepTime = None
+
+        if configFile != None:
+            self.readFile(configFile)
+        if config != None:
+            self.setConfig(config)
 
         if autoConnect:
             self.connect(boardnum)
+
+    def readFile(self, fileName=None):
+        """Read the .hjson configuration file to set up the DAQ unit.
+
+        This should be overridden to read any additional configuration values
+        when subclassing DAQ.py"""
+        # Opens use file and assigns corresponding parameters
+        if fileName != None
+            self.configFile = fileName
+
+        if self.verbose:
+            print("Reading config file: ",self.configFile)
+        try:
+            f = open(self.configFile, 'r')
+            newConfig = hjson.load(f)
+            f.close()
+            self.setConfig(newConfig)
+        except FileError:
+            if self.verbose:
+                print("No DAQ config file found, using existing DAQ config.")
+
+    def setConfig(self, config=None):
+        """Set variables from configuration dictionary"""
+        if config != None:
+            self.config = mergejson.merge(self.config, config)
+
+        # Try and parse a config-file if it is passed to us
+        try:
+            if self.config["config-file"] != None:
+                configFile = self.config["config-file"]
+                # Set config-file to None to avoid loops
+                self.config["config-file"] = None
+                newConfig = self.readFile(configFile)
+                if newConfig != None
+                    self.config = jsonmerge.merge(self.config, newConfig)
+        except KeyError:
+            pass
 
 
     def listDevices(self):
