@@ -18,7 +18,7 @@ import time
 import hjsonConfig
 import jsonmerge
 import numpy as np
-import DAQ
+import drivers.DAQ.DAQ as DAQ
 import matplotlib.pyplot as plt
 
 import _IV_default_config

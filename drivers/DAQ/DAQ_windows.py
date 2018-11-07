@@ -19,7 +19,7 @@
 from __future__ import print_function, division
 
 from mcculw.ul import *
-from props import ai, ao, digital
+from .props import ai, ao, digital
 from mcculw import enums
 from time import sleep
 import numpy as np

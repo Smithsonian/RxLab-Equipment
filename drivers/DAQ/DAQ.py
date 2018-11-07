@@ -11,9 +11,9 @@ from __future__ import print_function, division
 
 import platform
 if platform.system().lower().startswith('win'):
-    from DAQ_windows import *
+    from .DAQ_windows import *
 else:
-    from DAQ_linux import *
+    from .DAQ_linux import *
 
 if __name__ == "__main__":
     daq = DAQ()

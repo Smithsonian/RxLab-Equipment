@@ -5,7 +5,7 @@ from mcculw import ul
 from mcculw.enums import FunctionType, InfoType, BoardInfo, ChannelType
 from mcculw.ul import ULError
 
-from props.propsbase import Props
+from .propsbase import Props
 
 
 class DaqOutputProps(Props):
@@ -14,7 +14,7 @@ class DaqOutputProps(Props):
 
     This class is used to provide hardware information for the library
     examples, and may change hardware values. It is recommended that the
-    values provided by this class be hard-coded in production code. 
+    values provided by this class be hard-coded in production code.
     """
 
     def __init__(self, board_num):

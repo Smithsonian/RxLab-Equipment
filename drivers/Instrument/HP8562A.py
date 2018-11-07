@@ -1,7 +1,7 @@
 # HP 8562A Spectrum Analyzer operation code
 # Paul Grimes, March 2016
 
-import Instrument
+from ..Instrument import Instrument
 import time
 
 class SpecA(Instrument.Instrument):
@@ -27,7 +27,7 @@ class SpecA(Instrument.Instrument):
         self.vbw = self.getVBW()
 
         self.sweepRun = False
-    
+
     @property
     def idn(self):
         """Get the ID of the instrument"""
