@@ -1,9 +1,10 @@
-# H
+#! /usr/bin/env python
 
 import os
 import jsonmerge
 import hjson
 import copy
+from pprint import pprint
 
 def merge(base, head):
     """Merge two hjsonConfig objects together, using jsonmerge.merge"""
@@ -30,7 +31,7 @@ class hjsonConfig(hjson.OrderedDict):
         """Read an .hjson configuration file and return"""
         # Opens use file and assigns corresponding parameters
         if self.verbose:
-            print("Reading config file: ", fileName)
+            print("Reading file: ", fileName)
         try:
             f = open(fileName, 'r')
             newConfig = hjsonConfig(verbose=self.verbose)
@@ -38,12 +39,12 @@ class hjsonConfig(hjson.OrderedDict):
             f.close()
             if self.verbose:
                 print("    Got config:")
-                print(newConfig)
+                pprint(newConfig)
             newConfig.importConfigFiles()
             return newConfig
         except OSError:
             if self.verbose:
-                print("Config file {:s} not found.".format(fileName))
+                print("File {:s} not found.".format(fileName))
             return None
 
     def _copyIn(self, odict):
@@ -80,24 +81,24 @@ class hjsonConfig(hjson.OrderedDict):
                     self["imported-config-file"] = [configFile]
         except KeyError:
             if self.verbose:
-                print("No config files to import")
+                print("No config-files to import")
             configFile = None
 
         if configFile != None:
             # Might be a list of fileNames or a single fileName
             if type(configFile) is type(list()):
                 if self.verbose:
-                    print("Importing config files {:s}".format(configFile))
+                    print("Importing config-files {:s}".format(configFile))
                 fileConfig = hjsonConfig(verbose=self.verbose)
                 for c in configFile:
                     f = self._readFile(c)
                     fileConfig._copyIn(jsonmerge.merge(fileConfig, f))
             else:
                 if self.verbose:
-                    print("Importing config file {:s}".format(configFile))
+                    print("Importing config-file {:s}".format(configFile))
                 fileConfig = self._readFile(configFile)
             if self.verbose:
-                print(fileConfig)
+                pprint(fileConfig)
 
             # clear self and copy the merged ODict from jsonmerge in
             self._copyIn(jsonmerge.merge(fileConfig, self))
@@ -105,4 +106,5 @@ class hjsonConfig(hjson.OrderedDict):
 if __name__ == "__main__":
     config = hjsonConfig(fileName="test/test.hjson", verbose=True)
 
-    print(config)
+    print("Final config:")
+    pprint(config)
