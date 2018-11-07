@@ -16,31 +16,99 @@ from __future__ import print_function, division
 from uldaq import *
 from time import sleep
 import numpy as np
-import time
+from lib import hjsonConfig
+
+from . import _default_DAQ_config
 
 
 class DAQ:
-    def __init__(self, boardnum=0, AiMode=AiInputMode.DIFFERENTIAL, AiRange=Range.BIP5VOLTS, AoRange=Range.UNI5VOLTS, autoConnect=True, verbose=True):
-        """Create the DAQ device, and if <autoConnect>, automatically connect to
-        <boardnum>"""
+    def __init__(self, config=None, configFile=None, verbose=False, vverbose=True, autoConnect=True):
+        """Create the DAQ device, and if autoConnect, automatically connect to
+        board number 0"""
+        # Load the default config
+        self.config = _default_DAQ_config.defaultConfig
+
         self.devices = None
         self.daq_device = None
         self.boardnum = None
-        self.verbose = verbose
+        self.verbose = verbose or vverbose
+        self.vverbose = vverbose # Set to true to set config object to be verbose
 
-        self.interface_type = InterfaceType.USB
-        self.AiMode = AiMode
+        self.interface_type = enums.InterfaceType.USB
+        self.AiMode = None
         self.AiInfo = None
         self.AoInfo = None
+        self.DoPort = None
+        self.DiPort = None
         self.DioInfo = None
-        self.AiRange = AiRange
-        self.AoRange = AoRange
-
+        self.AiRange = None
+        self.AoRange = None
         # Time to sleep between checks in AInScan
-        self.sleepTime = 0.01
+        self.sleepTime = None
+
+        if configFile != None:
+            self.readFile(configFile)
+
+        if config != None:
+            self.setConfig(config)
+
+        self._applyConfig()
 
         if autoConnect:
-            self.connect(boardnum)
+            self.connect(self.config["boardnum"])
+
+    def readFile(self, fileName):
+        """Read the .hjson configuration file to set up the DAQ unit."""
+        # Opens use file
+        self.configFile = fileName
+
+        if self.verbose:
+            print("Reading config file: ",self.configFile)
+        try:
+            newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
+            self.setConfig(newConfig)
+        except OSError:
+            if self.verbose:
+                print("No DAQ config file found, using existing DAQ config.")
+
+    def setConfig(self, config):
+        """Merge a new config into the existing config.
+
+        Called automatically from readFile()"""
+        self.config = hjsonConfig.merge(self.config, config)
+        self._applyConfig
+
+    def _applyConfig(self):
+        """Apply the configuration to set up the object variables.  Will get
+        called automatically from setConfig
+
+        This should be overridden to read any additional configuration values
+        when subclassing DAQ.py"""
+        self.AoRange = self.lookUpRange(self.config["DACrange"], "unipolar")
+        self.AiMode = self.lookUpMode(self.config["ADCmode"])
+        self.AiRange = self.lookUpRange(self.config["ADCrange"], self.config["ADCpolarity"])
+        self.DoPort = self.lookUpDioPort(self.config["DOutPort"])
+        self.DiPort = self.lookUpDioPort(self.config["DInPort"])
+
+
+    def lookUpMode(self, mode):
+        """Look up an Analog Input Mode and return the enum value"""
+        return enums.AnalogInputMode[mode.upper()]
+
+    def lookUpRange(self, rang, polarity):
+        """Look up a range by maximum voltage and polarity and return the enum value"""
+        ulout = None
+        for ulr in list(enums.ULRange):
+            if ulr.name.startswith(polarity.upper()[0:2]):
+                if ulr.range_max == rang:
+                    ulout = ulr
+                    break
+        return ulout
+
+    def lookUpDioPort(self, portName):
+        """Look up the DioPort by port name and return the enum value"""
+        return enums.DigitalPortType[portName.upper()]
+
 
     def listDevices(self):
         """List DAQ devices connected to this machine"""

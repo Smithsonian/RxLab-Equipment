@@ -24,10 +24,9 @@ from mcculw import enums
 from time import sleep
 import numpy as np
 import ctypes
-import mergejson
-import hjson
+from lib import hjsonConfig
 
-import _default_DAQ_config
+from . import _default_DAQ_config
 
 
 
@@ -46,21 +45,24 @@ class DAQ:
         connect DAQ board, rather than the Daq object.  In combination with self.boardnum,
         this contains all the information available for connnections.
     """
-    def __init__(self, config=None, configFile="DAQ_config.hjson", verbose=False, autoConnect=True):
+    def __init__(self, config=None, configFile=None, verbose=False, vverbose=True, autoConnect=True):
         """Create the DAQ device, and if autoConnect, automatically connect to
         board number 0"""
         # Load the default config
-        self.setConfig(_default_DAQ_config.config)
+        self.config = _default_DAQ_config.defaultConfig
 
         self.devices = None
         self.daq_device = None
         self.boardnum = None
-        self.verbose = verbose
+        self.verbose = verbose or vverbose
+        self.vverbose = vverbose # Set to true to set config object to be verbose
 
         self.interface_type = enums.InterfaceType.USB
         self.AiMode = None
         self.AiInfo = None
         self.AoInfo = None
+        self.DoPort = None
+        self.DiPort = None
         self.DioInfo = None
         self.AiRange = None
         self.AoRange = None
@@ -69,48 +71,66 @@ class DAQ:
 
         if configFile != None:
             self.readFile(configFile)
+
         if config != None:
             self.setConfig(config)
 
+        self._applyConfig()
+
         if autoConnect:
-            self.connect(boardnum)
+            self.connect(self.config["boardnum"])
 
-    def readFile(self, fileName=None):
-        """Read the .hjson configuration file to set up the DAQ unit.
-
-        This should be overridden to read any additional configuration values
-        when subclassing DAQ.py"""
-        # Opens use file and assigns corresponding parameters
-        if fileName != None
-            self.configFile = fileName
+    def readFile(self, fileName):
+        """Read the .hjson configuration file to set up the DAQ unit."""
+        # Opens use file
+        self.configFile = fileName
 
         if self.verbose:
             print("Reading config file: ",self.configFile)
         try:
-            f = open(self.configFile, 'r')
-            newConfig = hjson.load(f)
-            f.close()
+            newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
             self.setConfig(newConfig)
-        except FileError:
+        except OSError:
             if self.verbose:
                 print("No DAQ config file found, using existing DAQ config.")
 
-    def setConfig(self, config=None):
-        """Set variables from configuration dictionary"""
-        if config != None:
-            self.config = mergejson.merge(self.config, config)
+    def setConfig(self, config):
+        """Merge a new config into the existing config.
 
-        # Try and parse a config-file if it is passed to us
-        try:
-            if self.config["config-file"] != None:
-                configFile = self.config["config-file"]
-                # Set config-file to None to avoid loops
-                self.config["config-file"] = None
-                newConfig = self.readFile(configFile)
-                if newConfig != None
-                    self.config = jsonmerge.merge(self.config, newConfig)
-        except KeyError:
-            pass
+        Called automatically from readFile()"""
+        self.config = hjsonConfig.merge(self.config, config)
+        self._applyConfig
+
+    def _applyConfig(self):
+        """Apply the configuration to set up the object variables.  Will get
+        called automatically from setConfig
+
+        This should be overridden to read any additional configuration values
+        when subclassing DAQ.py"""
+        self.AoRange = self.lookUpRange(self.config["DACrange"], "unipolar")
+        self.AiMode = self.lookUpMode(self.config["ADCmode"])
+        self.AiRange = self.lookUpRange(self.config["ADCrange"], self.config["ADCpolarity"])
+        self.DoPort = self.lookUpDioPort(self.config["DOutPort"])
+        self.DiPort = self.lookUpDioPort(self.config["DInPort"])
+
+
+    def lookUpMode(self, mode):
+        """Look up an Analog Input Mode and return the enum value"""
+        return enums.AnalogInputMode[mode.upper()]
+
+    def lookUpRange(self, rang, polarity):
+        """Look up a range by maximum voltage and polarity and return the enum value"""
+        ulout = None
+        for ulr in list(enums.ULRange):
+            if ulr.name.startswith(polarity.upper()[0:2]):
+                if ulr.range_max == rang:
+                    ulout = ulr
+                    break
+        return ulout
+
+    def lookUpDioPort(self, portName):
+        """Look up the DioPort by port name and return the enum value"""
+        return enums.DigitalPortType[portName.upper()]
 
 
     def listDevices(self):
@@ -127,11 +147,14 @@ class DAQ:
         except (KeyboardInterrupt, ValueError):
             print("Could not find DAQ device(s).")
 
-    def connect(self, boardnum=0):
-        """Connects to DAQ device <boardnum>.  If device is already connected,
-        this will access that device.
+    def connect(self, boardnum=None):
+        """Connects to DAQ device <boardnum>, or to boardnum in config.
+        If device is already connected, this will access that device.
 
         Sets self.daq_device to the DaqDeviceDescriptor for that device."""
+        if boardnum == None:
+            boardnum = self.config["boardnum"]
+
         try:
             # Search for devices to get the DAQ ids
             if self.devices == None:
@@ -291,10 +314,16 @@ class DAQ:
         # Write output analog data to specified channel
         v_out(self.boardnum, channel, self.AoRange, data)
 
-    def DOut(self, data, channel=0, port=enums.DigitalPortType.FIRSTPORTA):
-        """Write output digital data to specified channel"""
+    def DOut(self, data, channel=0, port=None):
+        """Write output digital data to specified channel.
+
+        If port is None, look up port in self.DOPort"""
         if self.daq_device == None:
             raise RuntimeError("DAQ device is not connected")
+
+        if port == None:
+            port = self.DoPort
+
         # Look up port in DioInfo - will raise value error if port doesn't exist
         if port == enums.DigitalPortType.FIRSTPORTA:
             port_n = 0
