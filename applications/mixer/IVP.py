@@ -18,15 +18,15 @@ import matplotlib.pyplot as plt
 import drivers.Instrument.HP436A as PM
 import gpib
 
-
+import _default_IVP_config
 
 
 class IVP(IV.IV):
     def __init__(self, use="IV.use", verbose=False):
         super().__init__(use, verbose)
+        self.setConfig(_default_IVP_config.defaultConfig)
 
         self.pm = None
-        self.settleTime = 0.1
 
         self.initPM()
 
@@ -34,9 +34,9 @@ class IVP(IV.IV):
         self.endPM()
         super().__delete__()
 
-    def readFile(self):
-        super().readFile()
-        self.pm_address = self._use_lines[16].split()[0]
+    def _applyConfig(self):
+        super()._applyConfig()
+        self.pm_address = self.config["power-meter"]["address"]
 
     def initPM(self, pm_address=None):
         # Initializes Power Meter

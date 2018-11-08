@@ -70,7 +70,7 @@ class DAQ:
         self.sleepTime = None
 
         if configFile != None:
-            self.readFile(configFile)
+            self.readConfig(configFile)
 
         if config != None:
             self.setConfig(config)
@@ -80,7 +80,7 @@ class DAQ:
         if autoConnect:
             self.connect(self.config["boardnum"])
 
-    def readFile(self, fileName):
+    def readConfig(self, fileName):
         """Read the .hjson configuration file to set up the DAQ unit."""
         # Opens use file
         self.configFile = fileName
@@ -112,6 +112,7 @@ class DAQ:
         self.AiRange = self.lookUpRange(self.config["ADCrange"], self.config["ADCpolarity"])
         self.DoPort = self.lookUpDioPort(self.config["DOutPort"])
         self.DiPort = self.lookUpDioPort(self.config["DInPort"])
+        self.sleepTime = self.config["sleepTime"]
 
 
     def lookUpMode(self, mode):

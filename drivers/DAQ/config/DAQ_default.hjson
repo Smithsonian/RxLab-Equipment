@@ -7,4 +7,5 @@
     "ADCrange":5 # ADC maxium voltage
     "DOutPort": "FIRSTPORTA" # Digital port to be configured for output
     "DInPort": "FIRSTPORTB" # Digital port to be configured for input
+    "sleepTime":0.002 # Time to sleep between AInScan checks
 }

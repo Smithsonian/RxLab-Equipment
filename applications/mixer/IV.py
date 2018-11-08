@@ -29,13 +29,13 @@ class IV:
     def __init__(self, *args, config=None, configFile=None, verbose=False, vverbose=False):
         """Create an IV object that can set a bias via the DAQ, read bias voltages
         and currents, and run a sweep over bias points."""
-        self.config = _default_IV_config.defaultConfig
+        self.setConfig(_default_IV_config.defaultConfig)
 
         self.verbose = verbose or vverbose
         self.vverbose = vverbose
 
         if configFile != None:
-            self.config = self.readFile(configFile)
+            self.config = self.readConfig(configFile)
         if config != None:
             self.setConfig(config)
 
@@ -43,7 +43,7 @@ class IV:
 
         self.daq = DAQ.DAQ(autoConnect=False)
         # Import any extra daq settings from the IV config into the daq config
-        self.daq.setConfig(self.config["daq"])
+
         if len(*args) > 0:
             self._applyArgs(self, *args)
 
@@ -68,7 +68,8 @@ class IV:
 
         Called automatically from readFile()"""
         self.config = hjsonConfig.merge(self.config, config)
-        self._applyConfig
+        self._applyConfig()
+
 
     def _applyConfig(self):
         """Apply the configuration to set up the object variables.  Will get
@@ -76,6 +77,8 @@ class IV:
 
         This should be overridden to read any additional configuration values
         when subclassing IV.py"""
+        self.daq.setConfig(self.config["daq"])
+
         self.vOut_channel = self.config["vOut"]["channel"]
         self.vOut_gain = self.config["vOut"]["gain"]
         self.vOut_offset = self.config["vOut"]["offset"]
@@ -93,6 +96,7 @@ class IV:
 
         self.Rate = self.config["rate"]
         self.Navg = self.config["average"]
+        self.settleTime = self.config["settleTime"]
 
         self.vmin = self.config["sweep"]["vmin"]
         self.vmax = self.config["sweep"]["vmax"]
