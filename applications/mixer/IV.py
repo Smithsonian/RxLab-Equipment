@@ -15,61 +15,73 @@ from __future__ import print_function, division
 import sys
 import os
 import time
-import hjsonConfig
-import jsonmerge
+
 import numpy as np
 import drivers.DAQ.DAQ as DAQ
 import matplotlib.pyplot as plt
 
-import _IV_default_config
+from lib import hjsonConfig
+
+import _default_IV_config
 
 
 class IV:
-    def __init__(self, config=None, configFile="IV_config.hjson", verbose=False):
+    def __init__(self, *args, config=None, configFile=None, verbose=False, vverbose=False):
         """Create an IV object that can set a bias via the DAQ, read bias voltages
         and currents, and run a sweep over bias points."""
-        self.verbose = verbose
+        self.config = _default_IV_config.defaultConfig
 
-        self.pm = None
-        self.reverseSweep = True
-        self.settleTime = 0.01
-        self._bias = 0.0
-
-        # Load the default config
-        self.config = _default_IV_config.config
-
-        self.save_name = "iv.dat"
-        self.vmin = 0.0
-        self.vmax = 5.0
-        self.step = 0.05
-
-        if self.vmin > self.vmax:
-            self.vmin, self.vmax = self.vmax, self.vmin
-
-        self.daq = DAQ.DAQ(autoConnect=False)
+        self.verbose = verbose or vverbose
+        self.vverbose = vverbose
 
         if configFile != None:
-            self.config = !!!!hjsonConfig.read(configFile)
+            self.config = self.readFile(configFile)
         if config != None:
             self.setConfig(config)
+
+        self._bias = 0.0
+
+        self.daq = DAQ.DAQ(autoConnect=False)
+        # Import any extra daq settings from the IV config into the daq config
+        self.daq.setConfig(self.config["daq"])
+        if len(*args) > 0:
+            self._applyArgs(self, *args)
+
         self.initDAQ()
 
-    def __delete__(self):
-        """Run this before deleting the IV object, to release the DAQ board"""
-        self.endDAQ()
+    def readConfig(self, fileName):
+        """Read the .hjson configuration file to set up the DAQ unit."""
+        # Opens use file
+        self.configFile = fileName
 
-
-    def processConfig(self):
-        """Process the configuration"""
-        # Try and parse any daq elements in the config file
+        if self.verbose:
+            print("Reading config file: ",self.configFile)
         try:
-            self.daq.setConfig(config=self.config["daq"])
-        except KeyError:
-            pass
+            newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
+            self.setConfig(newConfig)
+        except OSError:
+            if self.verbose:
+                print("No DAQ config file found, using existing DAQ config.")
 
+    def setConfig(self, config):
+        """Merge a new config into the existing config.
+
+        Called automatically from readFile()"""
+        self.config = hjsonConfig.merge(self.config, config)
+        self._applyConfig
+
+    def _applyConfig(self):
+        """Apply the configuration to set up the object variables.  Will get
+        called automatically from setConfig
+
+        This should be overridden to read any additional configuration values
+        when subclassing IV.py"""
         self.vOut_channel = self.config["vOut"]["channel"]
         self.vOut_gain = self.config["vOut"]["gain"]
         self.vOut_offset = self.config["vOut"]["offset"]
+        self.Vs_min = self.config["vOut"]["Vsmin"]
+        self.Vs_max = self.config["vOut"]["Vsmax"]
+
 
         self.vIn_channel = self.config["vIn"]["channel"]
         self.vIn_gain = self.config["vIn"]["gain"]
@@ -79,10 +91,29 @@ class IV:
         self.iIn_gain = self.config["iIn"]["gain"]
         self.iIn_offset = self.config["iIn"]["offset"]
 
-        self.Vs_min = self.config["Vmin"]
-        self.Vs_max = self.config["Vmax"]
         self.Rate = self.config["rate"]
         self.Navg = self.config["average"]
+
+        self.vmin = self.config["sweep"]["vmin"]
+        self.vmax = self.config["sweep"]["vmax"]
+        self.step = self.config["sweep"]["step"]
+        self.reverseSweep = self.config["sweep"]["reverse"]
+        self.save_name = self.config["sweep"]["save-file"]
+
+    # def _applyArgs(self, *args):
+    #     """Apply args that might be received from a command line call"""
+    #     settings = [self.save_name, self.vmin, self.vmax, self.step]
+    #         for i, a in enumerate(args):
+    #             settings[i] = a
+    #
+    #     self.save_name = settings[0]
+    #     self.vmin = float(settings[1])
+    #     self.vmax = float(settings[2])
+    #     self.step = float(settings[3])
+
+    def __delete__(self):
+        """Run this before deleting the IV object, to release the DAQ board"""
+        self.endDAQ()
 
     def crop(self):
         # Limits set voltages to max and min sweep voltages
@@ -320,14 +351,14 @@ if __name__ == "__main__":
     test = IV(verbose=True)
 
     if len(sys.argv) >= 5:
+        if len(sys.argv) == 6:
+            test.readFile(sys.argv[5])
+            test.initDAQ()
         test.save_name = sys.argv[1]
         test.vmin = float(sys.argv[2])
         test.vmax = float(sys.argv[3])
         test.step = float(sys.argv[4])
-        if len(sys.argv) == 6:
-            test.use = sys.argv[5]
-            test.readFile()
-            test.initDAQ()
+
     else:
         test.save_name = input("Output file name: ")
         test.vmin = float(input("Minimum voltage [mV]: "))

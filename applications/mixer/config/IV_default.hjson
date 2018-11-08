@@ -17,7 +17,9 @@
     "vOut":{
         "channel":0, # Analog output channel
         "gain":2.0, # Conversion between Vout and mV at junction (mV/V)
-        "offset":2.5 # Voltage output that sets junction bias to 0mV
+        "offset":2.5, # Voltage output that sets junction bias to 0mV
+        "Vsmin":-5.0, # Lower limit on bias box Vout
+        "Vsmax":5.0 # Upper limit on bias box Vout
     },
     # Analog voltage in configuration
     "vIn":{
@@ -31,10 +33,15 @@
         "gain":1.0, # Conversion between mA and V (V/mA)
         "offset":0.0 # Offset of bias box in mA
     },
-    "Vmin":-5.0, # Maximum voltage of bias box (mV)
-    "Vmax":5.0, # Minimum voltage of bias box (mV)
 
     # Sampling setup
     "rate":24000, # Raw ADC sample rate
-    "average":200 # Number of samples to average per data point
+    "average":200, # Number of samples to average per data point
+    "sweep":{
+        "vmin":-4.0,
+        "vmax":4.0,
+        "step":0.05,
+        "reverse":True,
+        "save-file":"iv.dat"
+    }
 }

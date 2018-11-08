@@ -45,7 +45,7 @@ class DAQ:
         connect DAQ board, rather than the Daq object.  In combination with self.boardnum,
         this contains all the information available for connnections.
     """
-    def __init__(self, config=None, configFile=None, verbose=False, vverbose=True, autoConnect=True):
+    def __init__(self, config=None, configFile=None, verbose=False, vverbose=False, autoConnect=True):
         """Create the DAQ device, and if autoConnect, automatically connect to
         board number 0"""
         # Load the default config
