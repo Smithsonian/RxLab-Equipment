@@ -14,17 +14,16 @@ import os
 import time
 import visa
 import numpy as np
-from .IV import IV
+from IV import IV
 import matplotlib.pyplot as plt
 import drivers.Instrument.HP436A as PM
-import gpib
 
 import _default_IVP_config
 
 
-class IVP(IV.IV):
-    def __init__(self, use="IV.use", verbose=False):
-        super().__init__(use, verbose)
+class IVP(IV):
+    def __init__(self, use="IV.use", verbose=False, vverbose=False):
+        super().__init__(use, verbose=verbose, vverbose=vverbose)
         self.setConfig(_default_IVP_config.defaultConfig)
 
         self.pm = None
@@ -37,7 +36,10 @@ class IVP(IV.IV):
 
     def _applyConfig(self):
         super()._applyConfig()
-        self.pm_address = self.config["power-meter"]["address"]
+        try:
+            self.pm_address = self.config["power-meter"]["address"]
+        except KeyError:
+            self.pm_address = None
 
     def initPM(self, pm_address=None):
         # Initializes Power Meter
@@ -45,10 +47,10 @@ class IVP(IV.IV):
             pm_address = self.pm_address
 
         try:
-            rm = visa.ResourceManager("@py")
-            lr = rm.list_resources()
+            self.rm = visa.ResourceManager()
+            lr = self.rm.list_resources()
             if pm_address in lr:
-                self.pm = PM.PowerMeter(rm.open_resource(pm_address))
+                self.pm = PM.PowerMeter(self.rm.open_resource(pm_address))
                 self.pm_address = pm_address
                 if self.verbose:
                     print("Power Meter connected.\n")
@@ -56,7 +58,7 @@ class IVP(IV.IV):
                 self.pm = None
                 if self.verbose:
                     print("No Power Meter detected.\n")
-        except gpib.GpibError:
+        except visa.VisaIOError:
             self.pm = None
             if self.verbose:
                 print("GPIB Error connecting to Power Meter.\n")
@@ -101,10 +103,6 @@ class IVP(IV.IV):
     def runSweep(self):
         if self.verbose:
             print("\nRunning sweep...")
-
-        # Sets proper format for low and high channels to scan over
-        channels = [self.V_channel, self.I_channel]
-        low_channel, high_channel = min(channels), max(channels)
 
         if self.verbose:
             print("\tBias (mV)\tVoltage (mV)\tCurrent (mA)\tIF Power")
@@ -169,7 +167,7 @@ if __name__ == "__main__":
     #
     # Usage: python3 <file.dat> <vmin> <vmax> <step> <*use file>
 
-    test = IVP(verbose=True)
+    test = IVP(verbose=True, vverbose=True)
 
     if len(sys.argv) >= 5:
         if len(sys.argv) == 6:

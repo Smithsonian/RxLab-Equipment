@@ -7,6 +7,6 @@
     # Increase settleTime to allow PM to settle
     "settleTime":0.01, # Number of seconds to wait for bias to settle
     "power-meter": {
-        "address":"GPIB0::13::INSTR"
+        "address":"GPIB0::12::INSTR"
     }
 }
