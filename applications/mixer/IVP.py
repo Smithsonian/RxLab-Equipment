@@ -23,6 +23,9 @@ import _default_IVP_config
 
 
 class IVP(IV.IV):
+    """An object that can set and measure the bias on an SIS device, and measure
+    the IF power with either a GPIB connected power meter or an analong power
+    signal connected to the bias DAQ unit"""
     def __init__(self, use="IV.use", verbose=False):
         super().__init__(use, verbose)
         self.setConfig(_default_IVP_config.defaultConfig)
@@ -37,12 +40,29 @@ class IVP(IV.IV):
 
     def _applyConfig(self):
         super()._applyConfig()
-        self.pm_address = self.config["power-meter"]["address"]
+        try:
+            self.pm_address = self.config["power-meter"]["address"]
+        except KeyError:
+            try:
+                self.pIn_channel = self.config["power-meter"]["channel"]
+                self.pIn_gain = self.config["power-meter"]["gain"]
+                self.pIn_offset = self.config["power-meter"]["offset"]
+            except KeyError:
+                self.pm = None
+                raise KeyError("No power meter configuration found")
+            self.pm = None
 
     def initPM(self, pm_address=None):
         # Initializes Power Meter
         if pm_address==None:
             pm_address = self.pm_address
+
+        if pm_address==None:
+            # We don't have configuration for GPIB power meter, so we will
+            # assume an analog signal is connected to the DAQ ADC input
+            if self.verbose:
+                print("No GPIB power meter configured, using ADC input {:d}".format(self.pIn_channel))
+            return
 
         try:
             rm = visa.ResourceManager("@py")
@@ -51,19 +71,19 @@ class IVP(IV.IV):
                 self.pm = PM.PowerMeter(rm.open_resource(pm_address))
                 self.pm_address = pm_address
                 if self.verbose:
-                    print("Power Meter connected.\n")
+                    print("Power Meter connected on {:}.\n".format(self.pm_address))
             else:
                 self.pm = None
                 if self.verbose:
-                    print("No Power Meter detected.\n")
+                    print("No Power Meter detected on {:}.\n".format(self.pm_address))
         except gpib.GpibError:
             self.pm = None
             if self.verbose:
-                print("GPIB Error connecting to Power Meter.\n")
+                print("GPIB Error connecting to Power Meter on {:}.\n".format(self.pm_address))
         except:
             self.pm = None
             if self.verbose:
-                print("Unknown Error connecting to Power Meter.\n")
+                print("Unknown Error connecting to Power Meter on {:}.\n".format(self.pm_address))
 
     def bias(self, bias):
         """Short cut to set the bias point to <bias> mV and return the
@@ -81,15 +101,38 @@ class IVP(IV.IV):
 
     def getData(self):
         """Gets V, I and P (if PM present) data, and returns it as a tuple"""
-        Vdata, Idata = super().getData()
 
         if self.pm != None:
+            data = super().getData()
+            Vdata = data[self.vIn_channel]
+            Idata = data[self.iIn_channel]
             Pdata = self.pm.getData(rate="I")
 
-            return Vdata, Idata, Pdata
         else:
-            return Vdata, Idata
+            Vdata, Idata, Pdata = self.getDataAin()
 
+        return Vdata, Idata, Pdata
+
+    def getDataAin(self):
+        """Get the data for bias and IF power from the DAQ"""
+        data = self.getRawDataP()
+
+        # Get the output voltage/current data
+        Vdata = self.calcV(data[self.vIn_channel])
+        Idata = self.calcI(data[self.iIn_channel])
+        Pdata = self.calcP(data[self.pIn_channel])
+
+    def getRawDataAin(self):
+        """Gets the voltages for the bias and power meter from the DAQ"""
+        # Sets proper format for low and high channels to scan over
+        channels = [self.vIn_channel, self.iIn_channel, self.pIn_channel]
+        low_channel, high_channel = min(channels), max(channels)
+        data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
+        return np.mean(data[:, self.vIn_channel]), np.mean(data[:, self.iIn_channel], np.mean(data[:, self.pIn_channel]))
+
+    def calcP(self, volts):
+        """Convert ADC voltage to IF power"""
+        return (volts - self.pIn_offset) / self.pIn_gain
 
     def prepSweep(self):
         super().prepSweep()
