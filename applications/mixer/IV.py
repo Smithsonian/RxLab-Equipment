@@ -1,4 +1,4 @@
-##################################################
+#! /usr/bin/env python
 #                                                #
 # IV testing                                     #
 #                                                #
@@ -29,6 +29,9 @@ class IV:
     def __init__(self, *args, config=None, configFile=None, verbose=False, vverbose=False):
         """Create an IV object that can set a bias via the DAQ, read bias voltages
         and currents, and run a sweep over bias points."""
+        self.daq = DAQ.DAQ(autoConnect=False, verbose=vverbose)
+
+        self.config = None
         self.setConfig(_default_IV_config.defaultConfig)
 
         self.verbose = verbose or vverbose
@@ -41,11 +44,9 @@ class IV:
 
         self._bias = 0.0
 
-        self.daq = DAQ.DAQ(autoConnect=False)
-        # Import any extra daq settings from the IV config into the daq config
-
-        if len(*args) > 0:
-            self._applyArgs(self, *args)
+        # Work out what to do with this later
+        #if len(args) > 0:
+        #    self._applyArgs(self, *args)
 
         self.initDAQ()
 
@@ -77,7 +78,10 @@ class IV:
 
         This should be overridden to read any additional configuration values
         when subclassing IV.py"""
-        self.daq.setConfig(self.config["daq"])
+        try:
+            self.daq.setConfig(self.config["daq"])
+        except KeyError:
+            pass
 
         self.vOut_channel = self.config["vOut"]["channel"]
         self.vOut_gain = self.config["vOut"]["gain"]
@@ -144,8 +148,8 @@ class IV:
 
     def initDAQ(self):
         """Lists available DAQ devices, connects the selected board and sets the AI Range"""
-
-        self.daq.setAiRangeValue(self.AiRange)
+        self.daq.connect()
+        self.daq.setAiRangeValue(self.daq.AiRange)
 
 
     def bias(self, bias):
@@ -170,17 +174,17 @@ class IV:
 
     def setVoltOut(self, volt):
         """Sets the DAC output voltage and waits to settle"""
-        if volt > self.MaxDAC:
+        if volt > self.daq.AoRange.range_max:
             if self.verbose:
-                print("DAC Maximum output voltage of {:.2f} exceeded - clipping to max".format(self.MaxDAC))
-            volt = self.MaxDAC
+                print("DAC Maximum output voltage of {:.2f} exceeded - clipping to max".format(self.daq.AoRange.range_max))
+            volt = self.daq.AoRange.range_max
         if volt < 0.0:
             if self.verbose:
                 print("DAC Minimum output voltage of 0.00 V exceeded - clipping to min")
             volt = 0.0
 
         # Sets bias to specified voltage
-        self.daq.AOut(volt, channel=self.Out_channel)
+        self.daq.AOut(volt, channel=self.vOut_channel)
         time.sleep(self.settleTime)
 
     def getData(self):
@@ -207,7 +211,7 @@ class IV:
 
     def calcBias(self, bias):
         """Converts bias voltage to output voltage from DAQ"""
-        return bias * self.vOut_gain + self.vOut_offset
+        return bias / self.vOut_gain + self.vOut_offset
 
     def calcV(self, volts):
         """Converts ADC reading in volts to bias voltage in mV"""
@@ -352,7 +356,7 @@ if __name__ == "__main__":
     #
     # Usage: python3 <file.dat> <vmin> <vmax> <step> <*use file>
 
-    test = IV(verbose=True)
+    test = IV(verbose=True, vverbose=True)
 
     if len(sys.argv) >= 5:
         if len(sys.argv) == 6:
@@ -375,7 +379,7 @@ if __name__ == "__main__":
 
     # Output and plot data
     test.spreadsheet()
-    plt.ion()
+    #plt.ion()
     test.plot()
     # Wait until the plot is done
     try:

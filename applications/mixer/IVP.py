@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 ##################################################
 #                                                #
 # IV testing with Power Meter                                     #

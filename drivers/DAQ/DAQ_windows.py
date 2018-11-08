@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 ##################################################
 #                                                #
 # Driver for DAQ devices using the MCC UL        #
@@ -48,26 +49,18 @@ class DAQ:
     def __init__(self, config=None, configFile=None, verbose=False, vverbose=False, autoConnect=True):
         """Create the DAQ device, and if autoConnect, automatically connect to
         board number 0"""
-        # Load the default config
-        self.config = _default_DAQ_config.defaultConfig
-
-        self.devices = None
-        self.daq_device = None
-        self.boardnum = None
         self.verbose = verbose or vverbose
         self.vverbose = vverbose # Set to true to set config object to be verbose
 
+        # Load the default config
+        self.config = None
+        self.setConfig(_default_DAQ_config.defaultConfig)
+
+        self.boardnum = None
+        self.devices = None
+        self.daq_device = None
+
         self.interface_type = enums.InterfaceType.USB
-        self.AiMode = None
-        self.AiInfo = None
-        self.AoInfo = None
-        self.DoPort = None
-        self.DiPort = None
-        self.DioInfo = None
-        self.AiRange = None
-        self.AoRange = None
-        # Time to sleep between checks in AInScan
-        self.sleepTime = None
 
         if configFile != None:
             self.readConfig(configFile)
@@ -75,7 +68,6 @@ class DAQ:
         if config != None:
             self.setConfig(config)
 
-        self._applyConfig()
 
         if autoConnect:
             self.connect(self.config["boardnum"])
@@ -99,7 +91,7 @@ class DAQ:
 
         Called automatically from readFile()"""
         self.config = hjsonConfig.merge(self.config, config)
-        self._applyConfig
+        self._applyConfig()
 
     def _applyConfig(self):
         """Apply the configuration to set up the object variables.  Will get
@@ -233,11 +225,13 @@ class DAQ:
 
     def setAiMode(self, mode):
         """Sets the AiMode to one of the modes in enums.AnalogInputMode"""
+        if self.verbose:
+            print("Setting AiMode to {:}".format(mode))
         a_input_mode(self.boardnum, mode)
         self.getAiInfo()
         self.getAiMode()
         self.numChannels()
-        self.setAiRange(self.AiInfo.available_ranges[0])
+        self.setAiRange(self.AiRange)
         self.getAiRange()
 
     def getAiMode(self):
@@ -247,6 +241,8 @@ class DAQ:
 
     def setAiRange(self, range):
         """Sets the AI Range to one of the ranges in enums.ULRange"""
+        if self.verbose:
+            print("Setting AiRange to {:}".format(range))
         set_config(enums.InfoType.BOARDINFO, self.boardnum, 0, enums.BoardInfo.RANGE, range)
         self.AiRange = range
 

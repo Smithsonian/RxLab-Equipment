@@ -8,8 +8,12 @@ from pprint import pprint
 
 def merge(base, head):
     """Merge two hjsonConfig objects together, using jsonmerge.merge"""
-    merged = jsonmerge(base, head)
-    out = hjsonConfig(verbose=(base.verbose or head.verbose))
+    if base != None:
+        out = hjsonConfig(verbose=(base.verbose or head.verbose))
+    else:
+        out = hjsonConfig(verbose=head.verbose)
+
+    merged = jsonmerge.merge(base, head)
     out._copyIn(merged)
     return out
 

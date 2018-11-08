@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 ##################################################
 #                                                #
 # Driver for DAQ devices using the MCC UL        #
@@ -25,34 +26,24 @@ class DAQ:
     def __init__(self, config=None, configFile=None, verbose=False, vverbose=True, autoConnect=True):
         """Create the DAQ device, and if autoConnect, automatically connect to
         board number 0"""
+        self.verbose = verbose or vverbose
+        self.vverbose = vverbose # Set to true to set config object to be verbose
+
         # Load the default config
-        self.config = _default_DAQ_config.defaultConfig
+        self.config = None
+        self.setConfig(_default_DAQ_config.defaultConfig)
 
         self.devices = None
         self.daq_device = None
         self.boardnum = None
-        self.verbose = verbose or vverbose
-        self.vverbose = vverbose # Set to true to set config object to be verbose
 
         self.interface_type = enums.InterfaceType.USB
-        self.AiMode = None
-        self.AiInfo = None
-        self.AoInfo = None
-        self.DoPort = None
-        self.DiPort = None
-        self.DioInfo = None
-        self.AiRange = None
-        self.AoRange = None
-        # Time to sleep between checks in AInScan
-        self.sleepTime = None
 
         if configFile != None:
             self.readConfig(configFile)
 
         if config != None:
             self.setConfig(config)
-
-        self._applyConfig()
 
         if autoConnect:
             self.connect(self.config["boardnum"])
@@ -76,7 +67,7 @@ class DAQ:
 
         Called automatically from readFile()"""
         self.config = hjsonConfig.merge(self.config, config)
-        self._applyConfig
+        self._applyConfig()
 
     def _applyConfig(self):
         """Apply the configuration to set up the object variables.  Will get
@@ -125,11 +116,14 @@ class DAQ:
         except (KeyboardInterrupt, ValueError):
             print("Could not find DAQ device(s).")
 
-    def connect(self, boardnum=0):
+    def connect(self, boardnum=None):
         """Connects to DAQ device <boardnum>.  If device is already connected,
         this will access that device.
 
         Sets self.daq_device to the resulting uldaq object."""
+        if boardnum == None:
+            boardnum = self.config["boardnum"]
+
         try:
             if self.devices == None:
                 self.listDevices()
