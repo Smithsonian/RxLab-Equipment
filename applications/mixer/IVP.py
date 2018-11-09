@@ -14,20 +14,29 @@ import os
 import time
 import visa
 import numpy as np
+<<<<<<< HEAD
 
+=======
+from IV import IV
+>>>>>>> 7203103cd2db85807e57fa98d865868d05ac1827
 import matplotlib.pyplot as plt
 import drivers.Instrument.HP436A as PM
 
 from applications.mixer import IV
 from applications.mixer import _default_IVP_config
 
-
 class IVP(IV.IV):
     """An object that can set and measure the bias on an SIS device, and measure
     the IF power with either a GPIB connected power meter or an analong power
     signal connected to the bias DAQ unit"""
+<<<<<<< HEAD
     def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
         super().__init__(config=config, configFile=configFile, verbose=verbose, vverbose=vverbose)
+=======
+    def __init__(self, use="IV.use", verbose=False):
+        super().__init__(use, verbose)
+
+>>>>>>> 7203103cd2db85807e57fa98d865868d05ac1827
         self.setConfig(_default_IVP_config.defaultConfig)
 
         self.pm = None
@@ -46,14 +55,19 @@ class IVP(IV.IV):
                 print("GPIB power meter configuration found")
         except KeyError:
             try:
+                self.pm_address = None
                 self.pIn_channel = self.config["power-meter"]["channel"]
                 self.pIn_gain = self.config["power-meter"]["gain"]
                 self.pIn_offset = self.config["power-meter"]["offset"]
                 if self.verbose:
                     print("Analog power meter configuration found")
             except KeyError:
+<<<<<<< HEAD
                 if self.verbose:
                     print("No power meter configuration found")
+=======
+                raise KeyError("No power meter configuration found")
+>>>>>>> 7203103cd2db85807e57fa98d865868d05ac1827
             self.pm = None
 
     def initPM(self, pm_address=None):
@@ -69,10 +83,10 @@ class IVP(IV.IV):
             return
 
         try:
-            rm = visa.ResourceManager("@py")
-            lr = rm.list_resources()
+            self.rm = visa.ResourceManager()
+            lr = self.rm.list_resources()
             if pm_address in lr:
-                self.pm = PM.PowerMeter(rm.open_resource(pm_address))
+                self.pm = PM.PowerMeter(self.rm.open_resource(pm_address))
                 self.pm_address = pm_address
                 if self.verbose:
                     print("Power Meter connected on {:}.\n".format(self.pm_address))
@@ -149,10 +163,6 @@ class IVP(IV.IV):
         if self.verbose:
             print("\nRunning sweep...")
 
-        # Sets proper format for low and high channels to scan over
-        channels = [self.V_channel, self.I_channel]
-        low_channel, high_channel = min(channels), max(channels)
-
         if self.verbose:
             print("\tBias (mV)\tVoltage (mV)\tCurrent (mA)\tIF Power")
 
@@ -216,7 +226,7 @@ if __name__ == "__main__":
     #
     # Usage: python3 <file.dat> <vmin> <vmax> <step> <*use file>
 
-    test = IVP(verbose=True)
+    test = IVP(verbose=True, vverbose=True)
 
     if len(sys.argv) >= 5:
         if len(sys.argv) == 6:
