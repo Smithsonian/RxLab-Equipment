@@ -14,20 +14,20 @@ import os
 import time
 import visa
 import numpy as np
-from .IV import IV
+
 import matplotlib.pyplot as plt
 import drivers.Instrument.HP436A as PM
-import gpib
 
-import _default_IVP_config
+from applications.mixer import IV
+from applications.mixer import _default_IVP_config
 
 
 class IVP(IV.IV):
     """An object that can set and measure the bias on an SIS device, and measure
     the IF power with either a GPIB connected power meter or an analong power
     signal connected to the bias DAQ unit"""
-    def __init__(self, use="IV.use", verbose=False):
-        super().__init__(use, verbose)
+    def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
+        super().__init__(config=config, configFile=configFile, verbose=verbose, vverbose=vverbose)
         self.setConfig(_default_IVP_config.defaultConfig)
 
         self.pm = None
@@ -42,14 +42,18 @@ class IVP(IV.IV):
         super()._applyConfig()
         try:
             self.pm_address = self.config["power-meter"]["address"]
+            if self.verbose:
+                print("GPIB power meter configuration found")
         except KeyError:
             try:
                 self.pIn_channel = self.config["power-meter"]["channel"]
                 self.pIn_gain = self.config["power-meter"]["gain"]
                 self.pIn_offset = self.config["power-meter"]["offset"]
+                if self.verbose:
+                    print("Analog power meter configuration found")
             except KeyError:
-                self.pm = None
-                raise KeyError("No power meter configuration found")
+                if self.verbose:
+                    print("No power meter configuration found")
             self.pm = None
 
     def initPM(self, pm_address=None):
@@ -76,7 +80,7 @@ class IVP(IV.IV):
                 self.pm = None
                 if self.verbose:
                     print("No Power Meter detected on {:}.\n".format(self.pm_address))
-        except gpib.GpibError:
+        except visa.VisaIOError:
             self.pm = None
             if self.verbose:
                 print("GPIB Error connecting to Power Meter on {:}.\n".format(self.pm_address))
@@ -237,7 +241,9 @@ if __name__ == "__main__":
     test.plot()
     # Wait until the plot is done
     try:
-        input("Press [enter] to continue.")
+        save = input("Save Plot? [Y/N]")
+        if save =="Y":
+            test.savefig()
     except SyntaxError:
         pass
 

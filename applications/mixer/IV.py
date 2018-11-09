@@ -22,20 +22,22 @@ import matplotlib.pyplot as plt
 
 from lib import hjsonConfig
 
-import _default_IV_config
+from applications.mixer import _default_IV_config
 
 
 class IV:
-    def __init__(self, *args, config=None, configFile=None, verbose=False, vverbose=False):
+    def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
         """Create an IV object that can set a bias via the DAQ, read bias voltages
         and currents, and run a sweep over bias points."""
+        self.verbose = verbose or vverbose
+        self.vverbose = vverbose
+
         self.daq = DAQ.DAQ(autoConnect=False, verbose=vverbose)
 
         self.config = None
         self.setConfig(_default_IV_config.defaultConfig)
 
-        self.verbose = verbose or vverbose
-        self.vverbose = vverbose
+        self.fig = None
 
         if configFile != None:
             self.config = self.readConfig(configFile)
@@ -348,6 +350,15 @@ class IV:
         self.plotIV()
         self.fig.show()
 
+    def savefig(self, filename=None):
+        """Save the current figure to a file"""
+        if filename==None:
+            filename = self.save_name.split(".")[:-1]
+            filename.append("png")
+            filename = ".".join(filename)
+
+        if self.fig:
+            self.fig.savefig(filename)
 
 
 if __name__ == "__main__":
