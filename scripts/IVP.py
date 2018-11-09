@@ -10,7 +10,7 @@ import sys
 if len(sys.argv) == 6 or len(sys.argv) == 2:
     confFile = sys.argv.pop(1)
 else:
-    confFile("../config/IV-config.hjson")
+    confFile("../config/IVP-config.hjson")
 
 test = IVP(configFile=confFile, verbose=True, vverbose=False)
 
