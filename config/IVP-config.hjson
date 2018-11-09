@@ -3,7 +3,8 @@
 # using a unipolar to bipolar convertor
 {
     # Uses default DAQ configuration
-    # Uses default IV configuration
+    # Uses this IV configuration
+    "config-file":"IV-config.hjson",
     # Increase settleTime to allow PM to settle
     "settleTime":0.01, # Number of seconds to wait for bias to settle
     "power-meter": {

@@ -4,14 +4,23 @@ import os
 import jsonmerge
 import hjson
 import copy
+from pathlib import Path
 from pprint import pprint
 
 def merge(base, head):
     """Merge two hjsonConfig objects together, using jsonmerge.merge"""
+    try:
+        if base !=None:
+            verbose = base.verbose or head.verbose
+        else:
+            verbose = head.verbose
+    except AttributeError:
+        verbose = False
+        
     if base != None:
-        out = hjsonConfig(verbose=(base.verbose or head.verbose))
+        out = hjsonConfig(verbose=verbose)
     else:
-        out = hjsonConfig(verbose=head.verbose)
+        out = hjsonConfig(verbose=verbose)
 
     merged = jsonmerge.merge(base, head)
     out._copyIn(merged)
@@ -45,11 +54,19 @@ class hjsonConfig(hjson.OrderedDict):
                 print("    Got config:")
                 pprint(newConfig)
             newConfig.importConfigFiles()
-            return newConfig
         except OSError:
-            if self.verbose:
-                print("File {:s} not found.".format(fileName))
-            return None
+            try:
+                # Couldn't find the config file in the script's pwd, so let's look
+                # in the LabEquipment config directory
+                fileName = os.path.join(Path(__file__).resolve().parents[1], "config", fileName)
+                if self.verbose:
+                    print("Reading config file: ", fileName)
+                newConfig = hjsonConfig(fileName=fileName, verbose=self.verbose)
+            except OSError:
+                if self.verbose:
+                    print("File {:s} not found.".format(fileName))
+                return None
+        return newConfig
 
     def _copyIn(self, odict):
         """Delete all this objects data and copy in data from odict"""

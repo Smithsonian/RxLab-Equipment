@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+#
 # This code runs a sweep from <vmax> to <vmin> with stepsize <step> and
 # saves the data to <save_name>
 #
@@ -10,9 +12,9 @@ import sys
 if len(sys.argv) == 6 or len(sys.argv) == 2:
     confFile = sys.argv.pop(1)
 else:
-    confFile("../config/IVP-config.hjson")
+    confFile = "../config/IVP-config.hjson"
 
-test = IVP(configFile=confFile, verbose=True, vverbose=False)
+test = IVP(configFile=confFile, verbose=True, vverbose=True)
 
 if len(sys.argv) >= 5:
     test.save_name = sys.argv[1]

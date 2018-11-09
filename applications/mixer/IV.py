@@ -15,6 +15,8 @@ from __future__ import print_function, division
 import sys
 import os
 import time
+import pprint
+from pathlib import Path
 
 import numpy as np
 import drivers.DAQ.DAQ as DAQ
@@ -32,7 +34,7 @@ class IV:
         self.verbose = verbose or vverbose
         self.vverbose = vverbose
 
-        self.daq = DAQ.DAQ(autoConnect=False, verbose=vverbose)
+        self.daq = DAQ.DAQ(autoConnect=False, verbose=self.vverbose)
 
         self.config = None
         self.setConfig(_default_IV_config.defaultConfig)
@@ -63,8 +65,18 @@ class IV:
             newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
             self.setConfig(newConfig)
         except OSError:
-            if self.verbose:
-                print("No DAQ config file found, using existing DAQ config.")
+            try:
+                # Couldn't find the config file in the script's pwd, so let's look
+                # in the LabEquipment config directory
+                fileName = os.path.join(Path(__file__).resolve().parents[1], "config", fileName)
+                self.configFile = fileName
+                if self.verbose:
+                    print("Reading config file: ", self.fileName)
+                newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
+                self.setConfig(newConfig)
+            except OSError:
+                if self.verbose:
+                    print("No IV config file found, using existing IV config.")
 
     def setConfig(self, config):
         """Merge a new config into the existing config.
@@ -85,30 +97,35 @@ class IV:
         except KeyError:
             pass
 
-        self.vOut_channel = self.config["vOut"]["channel"]
-        self.vOut_gain = self.config["vOut"]["gain"]
-        self.vOut_offset = self.config["vOut"]["offset"]
-        self.Vs_min = self.config["vOut"]["Vsmin"]
-        self.Vs_max = self.config["vOut"]["Vsmax"]
+        try:
+            self.vOut_channel = self.config["vOut"]["channel"]
+            self.vOut_gain = self.config["vOut"]["gain"]
+            self.vOut_offset = self.config["vOut"]["offset"]
+            self.Vs_min = self.config["vOut"]["Vsmin"]
+            self.Vs_max = self.config["vOut"]["Vsmax"]
 
 
-        self.vIn_channel = self.config["vIn"]["channel"]
-        self.vIn_gain = self.config["vIn"]["gain"]
-        self.vIn_offset = self.config["vIn"]["offset"]
+            self.vIn_channel = self.config["vIn"]["channel"]
+            self.vIn_gain = self.config["vIn"]["gain"]
+            self.vIn_offset = self.config["vIn"]["offset"]
 
-        self.iIn_channel = self.config["iIn"]["channel"]
-        self.iIn_gain = self.config["iIn"]["gain"]
-        self.iIn_offset = self.config["iIn"]["offset"]
+            self.iIn_channel = self.config["iIn"]["channel"]
+            self.iIn_gain = self.config["iIn"]["gain"]
+            self.iIn_offset = self.config["iIn"]["offset"]
 
-        self.Rate = self.config["rate"]
-        self.Navg = self.config["average"]
-        self.settleTime = self.config["settleTime"]
+            self.Rate = self.config["rate"]
+            self.Navg = self.config["average"]
+            self.settleTime = self.config["settleTime"]
 
-        self.vmin = self.config["sweep"]["vmin"]
-        self.vmax = self.config["sweep"]["vmax"]
-        self.step = self.config["sweep"]["step"]
-        self.reverseSweep = self.config["sweep"]["reverse"]
-        self.save_name = self.config["sweep"]["save-file"]
+            self.vmin = self.config["sweep"]["vmin"]
+            self.vmax = self.config["sweep"]["vmax"]
+            self.step = self.config["sweep"]["step"]
+            self.reverseSweep = self.config["sweep"]["reverse"]
+            self.save_name = self.config["sweep"]["save-file"]
+        except KeyError:
+            if self.verbose:
+                pprint.pprint(self.config)
+            raise
 
     # def _applyArgs(self, *args):
     #     """Apply args that might be received from a command line call"""
