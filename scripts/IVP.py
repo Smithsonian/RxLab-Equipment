@@ -12,7 +12,7 @@ import sys
 if len(sys.argv) == 6 or len(sys.argv) == 2:
     confFile = sys.argv.pop(1)
 else:
-    confFile = "../config/IVP-config.hjson"
+    confFile = None
 
 test = IVP(configFile=confFile, verbose=True, vverbose=True)
 
@@ -36,7 +36,6 @@ test.sweep()
 
 # Output and plot data
 test.spreadsheet()
-plt.ion()
 test.plot()
 # Wait until the plot is done
 try:

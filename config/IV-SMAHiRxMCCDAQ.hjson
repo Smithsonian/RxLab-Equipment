@@ -27,7 +27,7 @@
     "Vmax":15, # Minimum voltage of bias box (mV)
 
     # Sampling setup
-    "rate":24000, # Raw ADC sample rate
+    "rate":12000, # Raw ADC sample rate
     "average":200 # Number of samples to average per data point
     "settleTime":0.001, # Number of seconds to wait for bias to settle
     "sweep":{

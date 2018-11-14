@@ -1,6 +1,6 @@
 # Bias box configuration file
 {
-    "config-file":"test/IV_default.hjson",
+    "config-file":"test/test3.hjson",
     "daq":{
         "ADCmode":"differential", # ADC input mode - "differential" or "single-ended"
         "ADCpolarity":"bipolar", # ADC input polarity - "bipolar" or "unipolar"

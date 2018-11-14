@@ -119,7 +119,7 @@ class IVP(IV.IV):
 
     def getDataAin(self):
         """Get the data for bias and IF power from the DAQ"""
-        data = self.getRawDataP()
+        data = self.getRawDataAin()
 
         # Get the output voltage/current data
         Vdata = self.calcV(data[self.vIn_channel])

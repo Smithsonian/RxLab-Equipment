@@ -5,5 +5,5 @@ import os
 
 verbose=True
 
-fileName = os.path.join(os.path.dirname(__file__), "config", "IVP_default.hjson")
+fileName = os.path.join(os.path.dirname(__file__), "config", "IVP-default.hjson")
 defaultConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=verbose)
