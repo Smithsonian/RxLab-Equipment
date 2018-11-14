@@ -5,13 +5,13 @@
 #
 # Usage: iv.py <*config file> <file.dat> <vmin> <vmax> <step>
 from applications.mixer.IV import *
-import sys
+import sys, time
 
 
 if len(sys.argv) == 6 or len(sys.argv) == 2:
     confFile = sys.argv.pop(1)
 else:
-    confFile("../config/IV-config.hjson")
+    confFile = None
 
 test = IV(configFile=confFile, verbose=True, vverbose=False)
 
@@ -36,7 +36,6 @@ test.sweep()
 
 # Output and plot data
 test.spreadsheet()
-#plt.ion()
 test.plot()
 # Wait until the plot is done
 try:

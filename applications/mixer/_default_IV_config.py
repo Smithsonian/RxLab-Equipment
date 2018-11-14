@@ -3,7 +3,7 @@
 from lib import hjsonConfig
 import os
 
-verbose=True
+verbose=False
 
 fileName = os.path.join(os.path.dirname(__file__), "config", "IV_default.hjson")
 defaultConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=verbose)

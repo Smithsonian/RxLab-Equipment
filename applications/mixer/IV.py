@@ -230,7 +230,7 @@ class IV:
 
     def calcBias(self, bias):
         """Converts bias voltage to output voltage from DAQ"""
-        return bias / self.vOut_gain + self.vOut_offset
+        return bias * self.vOut_gain + self.vOut_offset
 
     def calcV(self, volts):
         """Converts ADC reading in volts to bias voltage in mV"""

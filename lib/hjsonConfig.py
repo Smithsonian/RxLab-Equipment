@@ -16,7 +16,7 @@ def merge(base, head):
             verbose = head.verbose
     except AttributeError:
         verbose = False
-        
+
     if base != None:
         out = hjsonConfig(verbose=verbose)
     else:
@@ -58,10 +58,13 @@ class hjsonConfig(hjson.OrderedDict):
             try:
                 # Couldn't find the config file in the script's pwd, so let's look
                 # in the LabEquipment config directory
-                fileName = os.path.join(Path(__file__).resolve().parents[1], "config", fileName)
-                if self.verbose:
-                    print("Reading config file: ", fileName)
-                newConfig = hjsonConfig(fileName=fileName, verbose=self.verbose)
+                print("Couldn't find config file: ", fileName)
+                newFileName = os.path.join(Path(__file__).resolve().parents[1], "config", fileName)
+                if newFileName != fileName:
+                    print("Trying config file: ", newFileName)
+                    newConfig = hjsonConfig(fileName=newFileName, verbose=self.verbose)
+                else:
+                    return None
             except OSError:
                 if self.verbose:
                     print("File {:s} not found.".format(fileName))
@@ -70,9 +73,12 @@ class hjsonConfig(hjson.OrderedDict):
 
     def _copyIn(self, odict):
         """Delete all this objects data and copy in data from odict"""
-        self.clear()
-        for k in odict.keys():
-            self[k] = odict[k]
+        if odict != None:
+            self.clear()
+            for k in odict.keys():
+                self[k] = odict[k]
+        else:
+            pass
 
     def readFile(self, fileName):
         """Read a config file from fileName"""
@@ -84,8 +90,9 @@ class hjsonConfig(hjson.OrderedDict):
     def importConfigFiles(self):
         """Merge in referenced config files if present.
 
-        Entries in  the passed config overwrite any entries read from the file.
-        This allows this function to be called recursively to build up a complete config."""
+        Entries in the current config overwrite any entries read from the file.
+        This allows this function to be called recursively to build up a complete
+        config that refers to default settings stored in default configs."""
         # If a config json OrderedDict is passed, merge it with the existing configuration
         # Try and parse a config-file if it is passed to us
         configFile = None
