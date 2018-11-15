@@ -7,6 +7,7 @@
     "config-file":"IV-config.hjson",
     # Increase settleTime to allow PM to settle
     "settleTime":0.01, # Number of seconds to wait for bias to settle
+    "rate":12000, # Slower rate to allow for extra power-meter channel
     "power-meter": {
         "channel":2,
         "gain":1.0,

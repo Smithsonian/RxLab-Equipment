@@ -11,7 +11,7 @@ import sys, time
 if len(sys.argv) == 6 or len(sys.argv) == 2:
     confFile = sys.argv.pop(1)
 else:
-    confFile = None
+    confFile = "IV-config.hjson"
 
 test = IV(configFile=confFile, verbose=True, vverbose=False)
 

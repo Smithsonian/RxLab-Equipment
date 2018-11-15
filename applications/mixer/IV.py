@@ -82,7 +82,13 @@ class IV:
         """Merge a new config into the existing config.
 
         Called automatically from readFile()"""
+        if self.vverbose:
+            print("setConfig: Merging New Config:")
+            pprint.pprint(self.config)
         self.config = hjsonConfig.merge(self.config, config)
+        if self.vverbose:
+            print("setConfig: Merged Config:")
+            pprint.pprint(self.config)
         self._applyConfig()
 
 

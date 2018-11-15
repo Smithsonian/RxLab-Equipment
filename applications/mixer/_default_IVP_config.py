@@ -2,8 +2,11 @@
 
 from lib import hjsonConfig
 import os
+from pathlib import Path
 
-verbose=True
+verbose=False
 
-fileName = os.path.join(os.path.dirname(__file__), "config", "IVP-default.hjson")
+fileName = os.path.join(Path(__file__).resolve().parents[0], "config", "IVP-default.hjson")
+if verbose:
+    print("_default_IVP_config: Reading Default configFile: ", fileName)
 defaultConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=verbose)

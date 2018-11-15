@@ -126,13 +126,15 @@ class IVP(IV.IV):
         Idata = self.calcI(data[self.iIn_channel])
         Pdata = self.calcP(data[self.pIn_channel])
 
+        return Vdata, Idata, Pdata
+
     def getRawDataAin(self):
         """Gets the voltages for the bias and power meter from the DAQ"""
         # Sets proper format for low and high channels to scan over
         channels = [self.vIn_channel, self.iIn_channel, self.pIn_channel]
         low_channel, high_channel = min(channels), max(channels)
         data = self.daq.AInScan(low_channel, high_channel, self.Rate, self.Navg)
-        return np.mean(data[:, self.vIn_channel]), np.mean(data[:, self.iIn_channel], np.mean(data[:, self.pIn_channel]))
+        return np.mean(data[:, self.vIn_channel]), np.mean(data[:, self.iIn_channel]), np.mean(data[:, self.pIn_channel])
 
     def calcP(self, volts):
         """Convert ADC voltage to IF power"""
