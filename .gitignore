@@ -1,5 +1,5 @@
-Applications
 *.dat
+*.png
 *.xlsx
 *__pycache__*
 *.pyc
