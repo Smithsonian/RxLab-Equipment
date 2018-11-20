@@ -13,10 +13,9 @@
 from __future__ import print_function, division
 
 import sys
-import os
 import time
 import pprint
-from pathlib import Path
+from pkg_resources import resource_filename
 
 import numpy as np
 import drivers.DAQ.DAQ as DAQ
@@ -68,7 +67,7 @@ class IV:
             try:
                 # Couldn't find the config file in the script's pwd, so let's look
                 # in the LabEquipment config directory
-                fileName = os.path.join(Path(__file__).resolve().parents[1], "config", fileName)
+                fileName = resource_filename(__name__, "config/{:s}".format(fileName))
                 self.configFile = fileName
                 if self.verbose:
                     print("Reading config file: ", self.fileName)

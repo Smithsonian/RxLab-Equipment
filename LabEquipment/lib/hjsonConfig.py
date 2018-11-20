@@ -1,12 +1,11 @@
 #! /usr/bin/env python
+from __future__ import print_function
 
-import os
 import jsonmerge
 import hjson
 import copy
-from pathlib import Path
 from pprint import pprint
-import pkg_resources
+from pkg_resources import resource_filename
 
 def merge(base, head):
     """Merge two hjsonConfig objects together, using jsonmerge.merge"""
@@ -63,8 +62,8 @@ class hjsonConfig(hjson.OrderedDict):
                 # Look in same directory as current file
                 print("hjsonConfig: Couldn't find config file: ", fileName)
                 if self.fileName != None:
-                    print("hjsonConfig: looking in ", os.path.dirname(self.fileName))
-                    newFileName = os.path.join(os.path.dirname(self.fileName), fileName)
+                    print("hjsonConfig: looking in {:s}config".format(__name__))
+                    newFileName = resource_filename(__name__, "config/{:s}".format(fileName))
                     if self.verbose:
                         print("hjsonConfig: New fileName:", newFileName)
                 else:

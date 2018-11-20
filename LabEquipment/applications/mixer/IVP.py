@@ -10,7 +10,6 @@
 from __future__ import print_function, division
 
 import sys
-import os
 import time
 import visa
 import numpy as np
