@@ -5,5 +5,5 @@ from pkg_resources import resource_filename
 
 verbose=False
 
-fileName = resource_filename(__name__, "config/IV-default.hjson")
+fileName = resource_filename(__name__, "config/DAQ-default.hjson")
 defaultConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=verbose)
