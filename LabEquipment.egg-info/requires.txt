@@ -1,0 +1,5 @@
+pyvisa
+mcculw
+hjson
+numpy
+matplotlib

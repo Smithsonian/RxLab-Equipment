@@ -1,0 +1,17 @@
+Metadata-Version: 1.1
+Name: LabEquipment
+Version: 0.1
+Summary: SMA Receiver Lab Equipment scripts and drivers
+Home-page: https://github.com/PaulKGrimes/LabEquipment
+Author: Paul Grimes
+Author-email: pgrimes@cfa.harvard.edu
+License: UNKNOWN
+Description: # LabEquipment
+        Instrument Drivers and Applications using PyVisa, Measurement Computing's Universal Library, etc. to communicate with lab equipment and the Measurement Computing's USB DAQ hardware.
+        
+        This code has been developed for use in the Smithsonian Astrophysical Observatory's Receiver Lab, and for use on Submillimeter Array.  Most of the code is of relevance to submillimeter and millimeter receiver testing.
+        
+Keywords: lab equipment,data acquisition,GPIB drivers,receiver
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Programming Language :: Python :: 3.6
