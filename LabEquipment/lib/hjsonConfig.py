@@ -31,53 +31,57 @@ class hjsonConfig(hjson.OrderedDict):
     may include references to other hjson files via "config-file" entries.
 
     Entries duplicated in the top level file override the entries in an included file."""
-    def __init__(self, *args, fileName=None, verbose=False, **kwds):
+    def __init__(self, *args, filename=None, verbose=False, **kwds):
         """Very basic set up"""
         super(hjson.OrderedDict, self).__init__(*args, **kwds)
         self.verbose = verbose
-        self.fileName = fileName
-        if fileName != None:
+        self.filename = filename
+        if filename != None:
             if self.verbose:
-                print("hjsonConfig: Initializing from {:s}".format(fileName))
-            self.readFile(fileName)
+                print("hjsonConfig.__init__: Initializing from {:s}".format(filename))
+            self.readFile(filename)
 
-    def _readFile(self, fileName):
+    def _readFile(self, filename):
         """Read an .hjson configuration file and return"""
         # Opens use file and assigns corresponding parameters
         if self.verbose:
-            print("hjsonConfig: Reading file: ", fileName)
+            print("hjsonConfig._readFile: Reading file: ", filename)
         try:
-            f = open(fileName, 'r')
+            f = open(filename, 'r')
             newConfig = hjsonConfig(verbose=self.verbose)
             newConfig._copyIn(hjson.load(f))
             f.close()
             if self.verbose:
-                print("    hjsonConfig: Got config:")
+                print("hjsonConfig._readFile: Got config:")
                 pprint(newConfig)
             newConfig.importConfigFiles()
         except OSError:
-            print("OS Error received")
+            if self.verbose:
+                print("hjsonConfig._readFile: OS Error received")
             try:
                 # File not found in pwd
                 # Look in same directory as current file
-                print("hjsonConfig: Couldn't find config file: ", fileName)
-                if self.fileName != None:
-                    print("hjsonConfig: looking in {:s}config".format(__name__))
-                    newFileName = resource_filename(__name__, "config/{:s}".format(fileName))
+                if self.verbose:
+                    print("hjsonConfig._readFile: Couldn't find config file: ", filename)
+                if self.filename != None:
                     if self.verbose:
-                        print("hjsonConfig: New fileName:", newFileName)
+                        print("hjsonConfig._readFile: looking in LabEqupiment/config")
+                    newFileName = resource_filename("LabEquipment", "/config/{:s}".format(filename))
+                    if self.verbose:
+                        print("hjsonConfig._readFile: New filename:", newFileName)
                 else:
                     return None
 
                 # check we aren't setting up an infinite loop
-                if newFileName != fileName:
-                    print("hjsonConfig: Trying config file: ", newFileName)
-                    newConfig = hjsonConfig(fileName=newFileName, verbose=self.verbose)
+                if newFileName != filename:
+                    if self.verbose:
+                        print("hjsonConfig._readFile: Trying config file: ", newFileName)
+                    newConfig = hjsonConfig(filename=newFileName, verbose=self.verbose)
                 else:
                     return None
             except OSError:
                 if self.verbose:
-                    print("hjsonConfig: File {:s} not found.".format(fileName))
+                    print("hjsonConfig._readFile: File {:s} not found.".format(filename))
                 return None
         return newConfig
 
@@ -90,14 +94,15 @@ class hjsonConfig(hjson.OrderedDict):
         else:
             pass
 
-    def readFile(self, fileName):
-        """Read a config file from fileName"""
+    def readFile(self, filename):
+        """Read a config file from filename"""
         # Have to delete data from self and then copy data from readFile return value.
-        if self.fileName == None:
-            print("hjsonConfig: setting fileName: ", fileName)
-            self.fileName = fileName
-        self._copyIn(self._readFile(fileName))
-        self.importConfigFiles()
+        if self.filename == None:
+            if self.verbose:
+                print("hjsonConfig.readFile: setting filename: ", filename)
+            self.filename = filename
+        self._copyIn(self._readFile(filename))
+
 
 
     def importConfigFiles(self):
@@ -113,26 +118,26 @@ class hjsonConfig(hjson.OrderedDict):
             if self["config-file"] != None:
                 configFile = self["config-file"]
                 if self.verbose:
-                    print("hjsonConfig: Import from {:s}".format(configFile))
+                    print("hjsonConfig.importConfigFiles: Import from {:s}".format(configFile))
 
         except KeyError:
             if self.verbose:
-                print("hjsonConfig: No config-files to import")
+                print("hjsonConfig.importConfigFiles: No config-files to import")
             configFile = None
 
         if configFile != None:
-            # Might be a list of fileNames or a single fileName
+            # Might be a list of fileNames or a single filename
             if type(configFile) is type(list()):
                 if self.verbose:
-                    print("hjsonConfig: Importing config-files {:s}".format(configFile))
+                    print("hjsonConfig.importConfigFiles: Importing config-files {:s}".format(configFile))
                 fileConfig = hjsonConfig(verbose=self.verbose)
                 for c in configFile:
                     f = self._readFile(c)
                     fileConfig._copyIn(jsonmerge.merge(fileConfig, f))
             else:
                 if self.verbose:
-                    print("hjsonConfig: Importing config-file {:s}".format(configFile))
-                fileConfig = self._readFile(configFile)
+                    print("hjsonConfig.importConfigFiles: Importing config-file {:s}".format(configFile))
+                fileConfig = hjsonConfig(filename=configFile, verbose=self.verbose)
             if self.verbose:
                 pprint(fileConfig)
 
@@ -148,7 +153,7 @@ class hjsonConfig(hjson.OrderedDict):
             self._copyIn(jsonmerge.merge(fileConfig, self))
 
 if __name__ == "__main__":
-    config = hjsonConfig(fileName="test/test.hjson", verbose=True)
+    config = hjsonConfig(filename="test/test.hjson", verbose=True)
 
     print("Final config:")
     pprint(config)

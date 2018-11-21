@@ -26,6 +26,7 @@ from time import sleep
 import numpy as np
 import ctypes
 from lib import hjsonConfig
+import pprint
 
 from . import _default_DAQ_config
 
@@ -54,6 +55,9 @@ class DAQ:
 
         # Load the default config
         self.config = None
+        if self.verbose:
+            print("DAQ.__init__: Loading default config")
+            pprint.pprint(_default_DAQ_config.defaultConfig)
         self.setConfig(_default_DAQ_config.defaultConfig)
 
         self.boardnum = None
@@ -63,33 +67,43 @@ class DAQ:
         self.interface_type = enums.InterfaceType.USB
 
         if configFile != None:
+            if self.verbose:
+                print("DAQ.__init__: Reading config from {:s}".format(configFile))
             self.readConfig(configFile)
 
         if config != None:
+            if self.verbose:
+                print("DAQ.__init__: Applying passed config:")
+                pprint(config)
             self.setConfig(config)
 
 
         if autoConnect:
             self.connect(self.config["boardnum"])
 
-    def readConfig(self, fileName):
+    def readConfig(self, filename):
         """Read the .hjson configuration file to set up the DAQ unit."""
         # Opens use file
-        self.configFile = fileName
+        self.configFile = filename
 
         if self.verbose:
-            print("Reading config file: ",self.configFile)
+            print("DAQ.readConfig: Reading config file: ",self.configFile)
         try:
-            newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
+            newConfig = hjsonConfig.hjsonConfig(filename=filename, verbose=self.vverbose)
             self.setConfig(newConfig)
         except OSError:
             if self.verbose:
-                print("No DAQ config file found, using existing DAQ config.")
+                print("DAQ.readConfig: No DAQ config file found, using existing DAQ config.")
 
     def setConfig(self, config):
         """Merge a new config into the existing config.
 
         Called automatically from readFile()"""
+        if self.verbose:
+            print("DAQ.setConfig: Merging config")
+            pprint.pprint(config)
+            print("DAQ.setConfig: with old config:")
+            pprint.pprint(self.config)
         self.config = hjsonConfig.merge(self.config, config)
         self._applyConfig()
 
@@ -99,12 +113,21 @@ class DAQ:
 
         This should be overridden to read any additional configuration values
         when subclassing DAQ.py"""
-        self.AoRange = self.lookUpRange(self.config["DACrange"], "unipolar")
-        self.AiMode = self.lookUpMode(self.config["ADCmode"])
-        self.AiRange = self.lookUpRange(self.config["ADCrange"], self.config["ADCpolarity"])
-        self.DoPort = self.lookUpDioPort(self.config["DOutPort"])
-        self.DiPort = self.lookUpDioPort(self.config["DInPort"])
-        self.sleepTime = self.config["sleepTime"]
+        if self.verbose:
+            print("DAQ._applyConfig: Applying Config:")
+            pprint.pprint(self.config)
+        try:
+            self.AoRange = self.lookUpRange(self.config["DACrange"], "unipolar")
+            self.AiMode = self.lookUpMode(self.config["ADCmode"])
+            self.AiRange = self.lookUpRange(self.config["ADCrange"], self.config["ADCpolarity"])
+            self.DoPort = self.lookUpDioPort(self.config["DOutPort"])
+            self.DiPort = self.lookUpDioPort(self.config["DInPort"])
+            self.sleepTime = self.config["sleepTime"]
+        except KeyError:
+            if self.verbose:
+                print("DAQ._applyConfig: Got KeyError while applying DAQ config")
+                pprint.pprint(self.config)
+            raise
 
 
     def lookUpMode(self, mode):

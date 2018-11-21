@@ -40,10 +40,30 @@ class IV:
 
         self.fig = None
 
+        if self.vverbose:
+            print("IV.__init__: Default Config Loaded: Current config:")
+            pprint.pprint(self.config)
+
         if configFile != None:
-            self.config = self.readConfig(configFile)
+            self.readConfig(configFile)
+            if self.vverbose:
+                print("IV.__init__: Config Loaded from: {:s}".format(configFile))
+                pprint.pprint(self.config)
         if config != None:
+            if self.vverbose:
+                print("IV.__init__: Config passed to __init__:")
+                pprint.pprint(config)
+
             self.setConfig(config)
+
+            if self.vverbose:
+                print("IV.__init__: Config now:")
+                pprint.pprint(self.config)
+
+
+        if self.vverbose:
+            print("IV.__init__: Done setting configFile and config: Current config:")
+            pprint.pprint(self.config)
 
         self._bias = 0.0
 
@@ -53,40 +73,30 @@ class IV:
 
         self.initDAQ()
 
-    def readConfig(self, fileName):
+    def readConfig(self, filename):
         """Read the .hjson configuration file to set up the DAQ unit."""
         # Opens use file
-        self.configFile = fileName
+        self.configFile = filename
 
         if self.verbose:
-            print("Reading config file: ",self.configFile)
-        try:
-            newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
-            self.setConfig(newConfig)
-        except OSError:
-            try:
-                # Couldn't find the config file in the script's pwd, so let's look
-                # in the LabEquipment config directory
-                fileName = resource_filename(__name__, "config/{:s}".format(fileName))
-                self.configFile = fileName
-                if self.verbose:
-                    print("Reading config file: ", self.fileName)
-                newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
-                self.setConfig(newConfig)
-            except OSError:
-                if self.verbose:
-                    print("No IV config file found, using existing IV config.")
+            print("IV.readConfig: Reading config file: ", self.configFile)
+        newConfig = hjsonConfig.hjsonConfig(filename=filename, verbose=self.vverbose)
+        if self.vverbose:
+            print("IV.readConfig: Read config: ")
+            pprint.pprint(newConfig)
+        self.setConfig(newConfig)
+
 
     def setConfig(self, config):
         """Merge a new config into the existing config.
 
         Called automatically from readFile()"""
         if self.vverbose:
-            print("setConfig: Merging New Config:")
-            pprint.pprint(self.config)
+            print("IV.setConfig: Merging New config:")
+            pprint.pprint(config)
         self.config = hjsonConfig.merge(self.config, config)
         if self.vverbose:
-            print("setConfig: Merged Config:")
+            print("IV.setConfig: Merged Config:")
             pprint.pprint(self.config)
         self._applyConfig()
 
@@ -129,19 +139,9 @@ class IV:
             self.save_name = self.config["sweep"]["save-file"]
         except KeyError:
             if self.verbose:
+                print("Got KeyError while applying IV config")
                 pprint.pprint(self.config)
             raise
-
-    # def _applyArgs(self, *args):
-    #     """Apply args that might be received from a command line call"""
-    #     settings = [self.save_name, self.vmin, self.vmax, self.step]
-    #         for i, a in enumerate(args):
-    #             settings[i] = a
-    #
-    #     self.save_name = settings[0]
-    #     self.vmin = float(settings[1])
-    #     self.vmax = float(settings[2])
-    #     self.step = float(settings[3])
 
     def __delete__(self):
         """Run this before deleting the IV object, to release the DAQ board"""

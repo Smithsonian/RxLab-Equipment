@@ -48,15 +48,15 @@ class DAQ:
         if autoConnect:
             self.connect(self.config["boardnum"])
 
-    def readConfig(self, fileName):
+    def readConfig(self, filename):
         """Read the .hjson configuration file to set up the DAQ unit."""
         # Opens use file
-        self.configFile = fileName
+        self.configFile = filename
 
         if self.verbose:
             print("Reading config file: ",self.configFile)
         try:
-            newConfig = hjsonConfig.hjsonConfig(fileName=fileName, verbose=self.vverbose)
+            newConfig = hjsonConfig.hjsonConfig(filename=filename, verbose=self.vverbose)
             self.setConfig(newConfig)
         except OSError:
             if self.verbose:

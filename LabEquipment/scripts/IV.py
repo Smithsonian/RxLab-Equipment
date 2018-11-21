@@ -6,6 +6,7 @@
 # Usage: iv.py <*config file> <file.dat> <vmin> <vmax> <step>
 from applications.mixer.IV import *
 import sys, time
+from pprint import pprint
 
 
 if len(sys.argv) == 6 or len(sys.argv) == 2:
@@ -25,7 +26,9 @@ else:
     # See if the config file defined a sweep, if not, ask for values
     try:
         sweepConf = test.config["sweep"]
-    except KeyError:
+    except (KeyError, TypeError):
+        print("test.config error caught")
+        pprint(test.config)
         test.save_name = input("Output file name: ")
         test.vmin = float(input("Minimum voltage [mV]: "))
         test.vmax = float(input("Maximum voltage [mV]: "))
