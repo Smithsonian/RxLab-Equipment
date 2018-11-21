@@ -199,13 +199,11 @@ class IVP(IV.IV):
     def plot(self, ion=True):
         """Plot the acquired data from the sweep.
         """
-        if ion:
-            plt.ion()
         self.fig, self.ax = plt.subplots()
         self.plotIV()
         self.ax2 = self.ax.twinx()
         self.plotPV()
-        self.fig.show()
+        plt.show()
 
 if __name__ == "__main__":
     # This code runs a sweep from <vmax> to <vmin> with stepsize <step> and
@@ -234,7 +232,6 @@ if __name__ == "__main__":
 
     # Output and plot data
     test.spreadsheet()
-    plt.ion()
     test.plot()
     # Wait until the plot is done
     try:

@@ -14,7 +14,7 @@ if len(sys.argv) == 6 or len(sys.argv) == 2:
 else:
     confFile = "IVP-config.hjson"
 
-test = IVP(configFile=confFile, verbose=True, vverbose=True)
+test = IVP(configFile=confFile, verbose=False, vverbose=False)
 
 if len(sys.argv) >= 5:
     test.save_name = sys.argv[1]
