@@ -366,11 +366,11 @@ class IV:
 
         This should be overridden to plot additional data when subclassing IV
         """
-        if ion:
-            plt.ion()
+        #if ion:
+        #    plt.ion()
         self.fig, self.ax = plt.subplots()
         self.plotIV()
-        self.fig.show()
+        plt.show()
 
     def savefig(self, filename=None):
         """Save the current figure to a file"""

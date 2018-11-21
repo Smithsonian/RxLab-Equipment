@@ -7,6 +7,7 @@
 from applications.mixer.IV import *
 import sys, time
 from pprint import pprint
+import matplotlib
 
 
 if len(sys.argv) == 6 or len(sys.argv) == 2:
@@ -39,6 +40,9 @@ test.sweep()
 
 # Output and plot data
 test.spreadsheet()
+
+print(matplotlib.get_backend())
+
 test.plot()
 # Wait until the plot is done
 try:
