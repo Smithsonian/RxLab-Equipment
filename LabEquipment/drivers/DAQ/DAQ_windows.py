@@ -155,7 +155,7 @@ class DAQ:
             self.devices = get_daq_device_inventory(self.interface_type)
             self.number_of_devices = len(self.devices)
             if self.number_of_devices == 0:
-                raise RunTimeException('Error: No DAQ devices found')
+                raise RuntimeError('Error: No DAQ devices found')
             if self.verbose:
                 print("Found {:d} DAQ device(s): ".format(self.number_of_devices))
                 for i in range(self.number_of_devices):

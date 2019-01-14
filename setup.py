@@ -20,7 +20,7 @@ setup(name='LabEquipment',
       author_email='pgrimes@cfa.harvard.edu',
       packages=find_packages(),
       install_requires=[
-          'pyvisa', 'mcculw', 'hjson', 'numpy', 'matplotlib'
+          'pyvisa', 'mcculw', 'hjson', 'jsonmerge', 'numpy', 'matplotlib'
       ],
       include_package_data=True,
       scripts=['LabEquipment/scripts/IV.py', 'LabEquipment/scripts/IVP.py'],
