@@ -4,3 +4,4 @@
 *__pycache__*
 *.pyc
 /DAQ/*.pyc
+/archive
