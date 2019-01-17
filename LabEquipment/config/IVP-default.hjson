@@ -1,0 +1,16 @@
+# IVP default configuration file
+# Assumes we don't know anything about the bias box, except that we are
+# using a unipolar to bipolar convertor
+{
+    # Uses default DAQ configuration
+    # Uses default IV configuration
+    "config-file":"IV-default.hjson",
+    # Increase settleTime to allow PM to settle
+    "settleTime":0.01, # Number of seconds to wait for bias to settle
+    "rate":12000, # Lower scanning rate to allow for extra channel for power meter
+    "power-meter": {
+        "channel":2,
+        "gain":1.0,
+        "offset":0.00
+    }
+}
