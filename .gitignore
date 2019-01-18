@@ -5,3 +5,4 @@
 *.pyc
 /DAQ/*.pyc
 /archive
+/build
