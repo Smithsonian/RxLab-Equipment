@@ -149,24 +149,24 @@ class IV:
 
     def crop(self):
         """Limits set voltages to max and min sweep voltages"""
-        limVmin = self.calcBiasOut(self.Vs_min)
-        limVmax = self.calcBiasOut(self.Vs_max)
+        limVmin = self.Vs_min
+        limVmax = self.Vs_max
         if self.vmin < limVmin:
             if self.verbose:
                 print("vmin {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmin))
-            self.vmin = self.Vs_min
+            self.vmin = limVmin
         if self.vmin > limVmax:
             if self.verbose:
                 print("vmin {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmax))
-            self.vmin = self.Vs_max
-        if self.vmin < limVmin:
+            self.vmin = limVmax
+        if self.vmax < limVmin:
             if self.verbose:
                 print("vmax {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmin))
-            self.vmax = self.Vs_min
-        if self.vmin > limVmin:
+            self.vmax = limVmin
+        if self.vmax > limVmax:
             if self.verbose:
                 print("vmax {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmax))
-            self.vmax = self.Vs_max
+            self.vmax = limVmax
 
     def sort(self):
         """Make sure that vmax is greater than vmin"""
@@ -210,12 +210,12 @@ class IV:
         """Sets the DAC output voltage and waits to settle"""
         if volt > self.daq.AoRange.range_max:
             if self.verbose:
-                print("DAC Maximum output voltage of {:.2f} exceeded - clipping to max".format(self.daq.AoRange.range_max))
+                print("Requested output of {:.2f} exceeds DAC maximum output voltage of {:.2f} - clipping to max".format(volt, self.daq.AoRange.range_max))
             volt = self.daq.AoRange.range_max
-        if volt < 0.0:
+        if volt < self.daq.AoRange.range_min:
             if self.verbose:
-                print("DAC Minimum output voltage of 0.00 V exceeded - clipping to min")
-            volt = 0.0
+                print("Requested output of {:.2f} exceeds DAC minimum output voltage of {:.2f} - clipping to max".format(volt, self.daq.AoRange.range_min))
+            volt = self.daq.AoRange.range_min
 
         # Sets bias to specified voltage
         self.daq.AOut(volt, channel=self.vOut_channel)
@@ -248,7 +248,7 @@ class IV:
         return bias * self.vOut_gain + self.vOut_offset
 
     def calcBiasOut(self, biasVout):
-        """Converts output volage from DAQ to mixer bias"""
+        """Converts output voltage from DAQ to mixer bias"""
         return (biasVout - self.vOut_offset) / self.vOut_gain
 
     def calcV(self, volts):

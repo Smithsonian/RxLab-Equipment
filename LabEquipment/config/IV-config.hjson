@@ -1,4 +1,4 @@
 # Master IV config file, automatically read by IV.py and IVP.py scripts
 {
-    "config-file":"IV-SMAHiRxMCCDAQ.hjson"
+    "config-file":"IV-BlueBox.hjson"
 }
