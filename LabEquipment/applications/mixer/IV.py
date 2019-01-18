@@ -148,14 +148,24 @@ class IV:
         self.endDAQ()
 
     def crop(self):
-        # Limits set voltages to max and min sweep voltages
-        if self.vmin < self.Vs_min:
+        """Limits set voltages to max and min sweep voltages"""
+        limVmin = self.calcBiasOut(self.Vs_min)
+        limVmax = self.calcBiasOut(self.Vs_max)
+        if self.vmin < limVmin:
+            if self.verbose:
+                print("vmin {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmin))
             self.vmin = self.Vs_min
-        if self.vmin > self.Vs_max:
+        if self.vmin > limVmax:
+            if self.verbose:
+                print("vmin {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmax))
             self.vmin = self.Vs_max
-        if self.vmax < self.Vs_min:
+        if self.vmin < limVmin:
+            if self.verbose:
+                print("vmax {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmin))
             self.vmax = self.Vs_min
-        if self.vmax > self.Vs_max:
+        if self.vmin > limVmin:
+            if self.verbose:
+                print("vmax {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmax))
             self.vmax = self.Vs_max
 
     def sort(self):
@@ -236,6 +246,10 @@ class IV:
     def calcBias(self, bias):
         """Converts bias voltage to output voltage from DAQ"""
         return bias * self.vOut_gain + self.vOut_offset
+
+    def calcBiasOut(self, biasVout):
+        """Converts output volage from DAQ to mixer bias"""
+        return (biasVout - self.vOut_offset) / self.vOut_gain
 
     def calcV(self, volts):
         """Converts ADC reading in volts to bias voltage in mV"""

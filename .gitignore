@@ -6,3 +6,5 @@
 /DAQ/*.pyc
 /archive
 /build
+/dist
+/LabEquipment.egg-info

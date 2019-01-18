@@ -14,7 +14,7 @@ def main():
     else:
         confFile = "IVP-config.hjson"
 
-    test = IVP(configFile=confFile, verbose=False, vverbose=False)
+    test = IVP(configFile=confFile, verbose=True, vverbose=False)
 
     if len(sys.argv) >= 5:
         test.save_name = sys.argv[1]

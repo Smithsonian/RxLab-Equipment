@@ -112,7 +112,7 @@ class SpecA(object):
   def get_trace(self):
     """Return whole trace as [freq (GHz), amplitude (dBm)] pairs"""
     if self.sweep_run == False:
-      print "Sweep not run - running now"
+      print("Sweep not run - running now")
       self.sweep()
 
     # Get trace data from instrument

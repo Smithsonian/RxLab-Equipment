@@ -15,7 +15,7 @@ def main():
     else:
         confFile = "IV-config.hjson"
 
-    test = IV(configFile=confFile, verbose=True, vverbose=False)
+    test = IV(configFile=confFile, verbose=True, vverbose=True)
 
     # See if sweep parameters are on the command line
     if len(sys.argv) >= 5:
