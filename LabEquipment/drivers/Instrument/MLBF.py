@@ -50,7 +50,7 @@ class MLBF(object):
         """Set the port.
 
         Communication probably didn't work before this was set, but we
-        have lazy checking of model values, so we'll rely on that."""
+        have lazy checking of the values, so we'll rely on that."""
         self._port = p
 
     @property
@@ -72,7 +72,7 @@ class MLBF(object):
         """The minimum frequency of the YIG filter.  This can't change
         so we only read it the first time"""
         try:
-            freqmin = self._fqmin
+            freqmin = self._fmin
         except AttributeError:
             self._fmin = self.getFMin()
             freqmin = self._fmin
