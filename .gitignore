@@ -3,8 +3,8 @@
 *.xlsx
 *__pycache__*
 *.pyc
-/DAQ/*.pyc
-/archive
-/build
+*.egg
+LabEquipment.egg-info
 /dist
-/LabEquipment.egg-info
+/build
+/archive
