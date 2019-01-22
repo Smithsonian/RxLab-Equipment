@@ -1,4 +1,0 @@
-[console_scripts]
-IV = LabEquipment.scripts.IV:main
-IVP = LabEquipment.scripts.IVP:main
-
