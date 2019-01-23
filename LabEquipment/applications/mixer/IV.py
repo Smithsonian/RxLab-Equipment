@@ -147,6 +147,16 @@ class IV:
         """Run this before deleting the IV object, to release the DAQ board"""
         self.endDAQ()
 
+    def initDAQ(self):
+        """Connect the DAQ device"""
+        self.daq.connect()
+        self.daq.setAiRangeValue(self.daq.AiRange)
+
+    def endDAQ(self):
+        """Disconnects and releases the DAQ device"""
+        self.daq.disconnect()
+
+
     def crop(self):
         """Limits set voltages to max and min sweep voltages"""
         limVmin = self.Vs_min
@@ -178,13 +188,6 @@ class IV:
         if self.step < 0:
             self.step = -self.step
             self.reverseSweep = not self.reverseSweep
-
-
-    def initDAQ(self):
-        """Lists available DAQ devices, connects the selected board and sets the AI Range"""
-        self.daq.connect()
-        self.daq.setAiRangeValue(self.daq.AiRange)
-
 
     def bias(self, bias):
         """Short cut to set the bias point to <bias> mV and return the
@@ -342,11 +345,6 @@ class IV:
         self.setBias(self._oldBias)
         if self.verbose:
             print("Sweep is over.  Bias reset to {:.3f} mV.".format(self._bias))
-
-
-    def endDAQ(self):
-        """Disconnects and releases selected board number"""
-        self.daq.disconnect(self.Boardnum)
 
 
     def spreadsheet(self):

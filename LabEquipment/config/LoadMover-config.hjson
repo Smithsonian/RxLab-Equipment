@@ -1,9 +1,5 @@
 # Load Mover default configuration
 {
-    "daq":{
-        "boardnum":0, # MCC DAQ board to use
-        "DOutPort": "FIRSTPORTA" # Digital port to be configured for output
-    }
     "control-bit":7, # Bit number that controls load
     "load-in":1, # bit state that causes load to move into beam
     "switch-time":1.0 # time to wait in seconds for load to move

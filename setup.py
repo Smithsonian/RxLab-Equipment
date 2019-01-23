@@ -23,10 +23,11 @@ setup(name='LabEquipment',
           'pyvisa', 'mcculw', 'hjson', 'jsonmerge', 'numpy', 'matplotlib'
       ],
       include_package_data=True,
-      scripts=['LabEquipment/scripts/IV.py', 'LabEquipment/scripts/IVP.py'],
+      scripts=['LabEquipment/scripts/IV.py', 'LabEquipment/scripts/IVP.py', 'LabEquipment/scripts/LoadMover.py'],
       entry_points = {
         'console_scripts': ['IV=LabEquipment.scripts.IV:main',
-                            'IVP=LabEquipment.scripts.IVP:main']
+                            'IVP=LabEquipment.scripts.IVP:main',
+                            'LoadMover=LabEquipment.scripts.LoadMover:main']
       },
       #test_suite='nose.collector',
       #tests_require=['nose'],
