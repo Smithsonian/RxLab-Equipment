@@ -18,8 +18,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import LabEquipment.drivers.Instrument.HP436A as PM
 
-from LabEquipment.applications.mixer import IV
 from LabEquipment.applications.mixer import _default_IVP_config
+from LabEquipment.applications.mixer import IV
+
 
 class IVP(IV.IV):
     """An object that can set and measure the bias on an SIS device, and measure
@@ -28,6 +29,31 @@ class IVP(IV.IV):
     def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
         super().__init__(config=config, configFile=configFile, verbose=verbose, vverbose=vverbose)
         self.setConfig(_default_IVP_config.defaultConfig)
+
+        if self.vverbose:
+            print("IV.__init__: Default Config Loaded: Current config:")
+            pprint.pprint(self.config)
+
+        if configFile != None:
+            self.readConfig(configFile)
+            if self.vverbose:
+                print("IV.__init__: Config Loaded from: {:s}".format(configFile))
+                pprint.pprint(self.config)
+        if config != None:
+            if self.vverbose:
+                print("IV.__init__: Config passed to __init__:")
+                pprint.pprint(config)
+
+            self.setConfig(config)
+
+            if self.vverbose:
+                print("IV.__init__: Config now:")
+                pprint.pprint(self.config)
+
+
+        if self.vverbose:
+            print("IV.__init__: Done setting configFile and config: Current config:")
+            pprint.pprint(self.config)
 
         self.pm = None
 
