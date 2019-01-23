@@ -31,28 +31,27 @@ class IVP(IV.IV):
         self.setConfig(_default_IVP_config.defaultConfig)
 
         if self.vverbose:
-            print("IV.__init__: Default Config Loaded: Current config:")
+            print("IVP.__init__: Default Config Loaded: Current config:")
             pprint.pprint(self.config)
 
         if configFile != None:
             self.readConfig(configFile)
             if self.vverbose:
-                print("IV.__init__: Config Loaded from: {:s}".format(configFile))
+                print("IVP.__init__: Config Loaded from: {:s}".format(configFile))
                 pprint.pprint(self.config)
         if config != None:
             if self.vverbose:
-                print("IV.__init__: Config passed to __init__:")
+                print("IVP.__init__: Config passed to __init__:")
                 pprint.pprint(config)
 
             self.setConfig(config)
 
             if self.vverbose:
-                print("IV.__init__: Config now:")
+                print("IVP.__init__: Config now:")
                 pprint.pprint(self.config)
 
-
         if self.vverbose:
-            print("IV.__init__: Done setting configFile and config: Current config:")
+            print("IVP.__init__: Done setting configFile and config: Current config:")
             pprint.pprint(self.config)
 
         self.pm = None
