@@ -1,0 +1,10 @@
+# Hot Load temperature sensor default configuration
+{
+    "board":0, # MCC DAQ board to use to control and read sensor
+    "channel":3, # MCC DAQ board AI channel to read sensor
+    "control-bit":6, # MCC DAQ board DIO bit that energizes sensor
+    "sensor-on":1, # bit state that energizes sensor
+    "cal-temp":21.5, # temperature in C at which LM34 sensor is calibrated
+    "cal-voltage":0.724, # voltage from sensor at calibration temperature
+    "averaging-window":16 # number of samples to average from sensor
+}

@@ -4,5 +4,5 @@
     "DACrange":5, # DAC maximum voltage
     "ADCmode":"differential", # ADC input mode - "differential" or "single-ended"
     "ADCpolarity":"bipolar", # ADC input polarity - "bipolar" or "unipolar"
-    "ADCrange":5 # ADC maxium voltage
+    "ADCrange":5 # ADC maximum voltage
 }

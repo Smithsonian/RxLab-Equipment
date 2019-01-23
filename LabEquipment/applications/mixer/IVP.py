@@ -1,10 +1,11 @@
 #! /usr/bin/env python
 ##################################################
 #                                                #
-# IV testing with Power Meter                                     #
+# IV testing with IF power from power meter or   #
+# ADC                                            #
 #                                                #
 # Larry Gardner, July 2018                       #
-# Paul Grimes, August 2018                       #
+# Paul Grimes, November 2018                     #
 ##################################################
 
 from __future__ import print_function, division
@@ -22,7 +23,7 @@ from Labequipment.applications.mixer import _default_IVP_config
 
 class IVP(IV.IV):
     """An object that can set and measure the bias on an SIS device, and measure
-    the IF power with either a GPIB connected power meter or an analong power
+    the IF power with either a GPIB connected power meter or an analog power
     signal connected to the bias DAQ unit"""
     def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
         super().__init__(config=config, configFile=configFile, verbose=verbose, vverbose=vverbose)
@@ -41,7 +42,7 @@ class IVP(IV.IV):
         try:
             self.pm_address = self.config["power-meter"]["address"]
             if self.verbose:
-                print("GPIB power meter configuration found")
+                print("GPIB IF power meter configuration found")
         except KeyError:
             try:
                 self.pm_address = None
@@ -49,10 +50,10 @@ class IVP(IV.IV):
                 self.pIn_gain = self.config["power-meter"]["gain"]
                 self.pIn_offset = self.config["power-meter"]["offset"]
                 if self.verbose:
-                    print("Analog power meter configuration found")
+                    print("Analog input IF power configuration found")
             except KeyError:
                 if self.verbose:
-                    print("No power meter configuration found")
+                    print("No IF power configuration found")
             self.pm = None
 
     def initPM(self, pm_address=None):

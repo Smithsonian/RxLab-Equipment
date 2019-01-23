@@ -1,0 +1,7 @@
+# Load Mover default configuration
+{
+    "board":0, # MCC DAQ board to use
+    "control-bit":7, # Bit number that controls load
+    "hot-load":1 # bit state that causes ambient load to move into beam
+    "switch-time":1.0 # time to wait in seconds for load to move
+}
