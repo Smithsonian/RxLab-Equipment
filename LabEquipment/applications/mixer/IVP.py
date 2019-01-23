@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import LabEquipment.drivers.Instrument.HP436A as PM
 
 from LabEquipment.applications.mixer import IV
-from Labequipment.applications.mixer import _default_IVP_config
+from LabEquipment.applications.mixer import _default_IVP_config
 
 class IVP(IV.IV):
     """An object that can set and measure the bias on an SIS device, and measure
