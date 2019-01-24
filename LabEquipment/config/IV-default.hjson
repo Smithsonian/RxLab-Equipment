@@ -39,8 +39,8 @@
     "average":200, # Number of samples to average per data point
     "settleTime":0.01, # Number of seconds to wait for bias to settle
     "sweep":{
-        "vmin":-4.0,
-        "vmax":4.0,
+        "min":-4.0,
+        "max":4.0,
         "step":0.05,
         "reverse":True,
         "save-file":"iv.dat"

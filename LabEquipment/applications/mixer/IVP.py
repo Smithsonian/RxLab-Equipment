@@ -54,6 +54,7 @@ class IVP(IV.IV):
             print("IVP.__init__: Done setting configFile and config: Current config:")
             pprint.pprint(self.config)
 
+        self.columnHeaders = "Bias (mV)\tVoltage (mV)\tCurrent (mA)\tIF Power"
         self.pm = None
 
         self.initPM()
@@ -169,7 +170,7 @@ class IVP(IV.IV):
         super().prepSweep()
 
         # Prepares for data collection
-        self.Pdata = np.empty_like(self.BiasPts)
+        self.Pdata = np.empty_like(self.SweepPts)
 
 
     def runSweep(self):
@@ -177,23 +178,23 @@ class IVP(IV.IV):
             print("\nRunning sweep...")
 
         if self.verbose:
-            print("\tBias (mV)\tVoltage (mV)\tCurrent (mA)\tIF Power")
+            print("\t{:s}\n".format(self.columnHeaders))
 
-        for index, bias in enumerate(self.BiasPts):
-            self.setBias(bias)
+        for index, bias in enumerate(self.SweepPts):
+            self.setSweep(bias)
 
             #Collects data from scan
             data = self.getData()
 
             self.Vdata[index] = data[0]
             self.Idata[index] = data[1]
-            if self.pm != None:
+            if len(data) >= 3:
                 self.Pdata[index] = data[2]
             else:
                 self.Pdata[index] = 0.0
 
             if index%5 == 0 and self.verbose:
-                print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3g}".format(self.BiasPts[index], self.Vdata[index], self.Idata[index], self.Pdata[index]))
+                print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3g}".format(self.SweepPts[index], self.Vdata[index], self.Idata[index], self.Pdata[index]))
 
 
     def endPM(self):
@@ -210,9 +211,9 @@ class IVP(IV.IV):
 
         # Writes data to spreadsheet
         # Write a header describing the data
-        out.write("# Bias (mV)\t\tVoltage (mV)\t\tCurrent (mA)\n")
+        out.write("# {:s}\n".format(self.columnHeaders))
         for i in range(len(self.Vdata)):
-            out.write("{:.6g},\t{:.6g},\t{:.6g},\t{:.6g}\n".format(self.BiasPts[i], self.Vdata[i], self.Idata[i], self.Pdata[i]))
+            out.write("{:.6g},\t{:.6g},\t{:.6g},\t{:.6g}\n".format(self.SweepPts[i], self.Vdata[i], self.Idata[i], self.Pdata[i]))
 
         out.close()
 
@@ -232,10 +233,10 @@ class IVP(IV.IV):
         plt.show()
 
 if __name__ == "__main__":
-    # This code runs a sweep from <vmax> to <vmin> with stepsize <step> and
+    # This code runs a sweep from <max> to <min> with stepsize <step> and
     # saves the data to <save_name>
     #
-    # Usage: python3 <file.dat> <vmin> <vmax> <step> <*use file>
+    # Usage: python3 <file.dat> <min> <max> <step> <*use file>
 
     test = IVP(verbose=True, vverbose=True)
 
@@ -244,13 +245,13 @@ if __name__ == "__main__":
             test.readFile(sys.argv[5])
             test.initDAQ()
         test.save_name = sys.argv[1]
-        test.vmin = float(sys.argv[2])
-        test.vmax = float(sys.argv[3])
+        test.sweepmin = float(sys.argv[2])
+        test.sweepmax = float(sys.argv[3])
         test.step = float(sys.argv[4])
     else:
         test.save_name = input("Output file name: ")
-        test.vmin = float(input("Minimum voltage [mV]: "))
-        test.vmax = float(input("Maximum voltage [mV]: "))
+        test.sweepmin = float(input("Minimum voltage [mV]: "))
+        test.sweepmax = float(input("Maximum voltage [mV]: "))
         test.step = float(input("Step [mV]: "))
 
     # Run a sweep

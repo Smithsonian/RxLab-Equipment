@@ -1,20 +1,20 @@
 #! /usr/bin/env python
 #
-# This code runs a sweep from <max> to <min> with stepsize <step> and
+# This code runs a YIG filter sweep from <min> to <max> with stepsize <step> and
 # saves the data to <save_name>
 #
-# Usage: IVP.py <*config file> <file.dat> <min> <max> <step>
+# Usage: IFP.py <*config file> <file.dat> <min> <max> <step>
 
-from LabEquipment.applications.mixer.IVP import *
+from LabEquipment.applications.mixer.IFP import *
 import sys
 
 def main():
     if len(sys.argv) == 6 or len(sys.argv) == 2:
         confFile = sys.argv.pop(1)
     else:
-        confFile = "IVP-config.hjson"
+        confFile = "IFP-config.hjson"
 
-    test = IVP(configFile=confFile, verbose=True, vverbose=False)
+    test = IFP(configFile=confFile, verbose=True, vverbose=False)
 
     if len(sys.argv) >= 5:
         test.save_name = sys.argv[1]
@@ -26,9 +26,9 @@ def main():
             sweepConf = test.config["sweep"]
         except KeyError:
             test.save_name = input("Output file name: ")
-            test.sweepmin = float(input("Minimum voltage [mV]: "))
-            test.sweepmax = float(input("Maximum voltage [mV]: "))
-            test.step = float(input("Step [mV]: "))
+            test.sweepmin = float(input("Minimum frequency [GHz]: "))
+            test.sweepmax = float(input("Maximum frequency [GHz]: "))
+            test.step = float(input("Step [GHz]: "))
 
 
     # Run a sweep
