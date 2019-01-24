@@ -66,10 +66,7 @@ class IV:
             pprint.pprint(self.config)
 
         self._bias = 0.0
-
-        # Work out what to do with this later
-        #if len(args) > 0:
-        #    self._applyArgs(self, *args)
+        self.comlumnHeaders = "Bias (mV)\t\tVoltage (mV)\t\tCurrent (mA)"
 
         self.initDAQ()
 
@@ -132,8 +129,8 @@ class IV:
             self.Navg = self.config["average"]
             self.settleTime = self.config["settleTime"]
 
-            self.vmin = self.config["sweep"]["vmin"]
-            self.vmax = self.config["sweep"]["vmax"]
+            self.sweepmin = self.config["sweep"]["min"]
+            self.sweepmax = self.config["sweep"]["max"]
             self.step = self.config["sweep"]["step"]
             self.reverseSweep = self.config["sweep"]["reverse"]
             self.save_name = self.config["sweep"]["save-file"]
@@ -157,33 +154,33 @@ class IV:
         self.daq.disconnect()
 
 
-    def crop(self):
-        """Limits set voltages to max and min sweep voltages"""
+    def cropSweep(self):
+        """Limits sweep voltages to max and min output voltages"""
         limVmin = self.Vs_min
         limVmax = self.Vs_max
-        if self.vmin < limVmin:
+        if self.sweepmin < limVmin:
             if self.verbose:
-                print("vmin {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmin))
-            self.vmin = limVmin
-        if self.vmin > limVmax:
+                print("Sweep min {:f} exceeds limits, limiting to {:f}".format(self.sweepmax, limVmin))
+            self.sweepmin = limVmin
+        if self.sweepmin > limVmax:
             if self.verbose:
-                print("vmin {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmax))
-            self.vmin = limVmax
-        if self.vmax < limVmin:
+                print("Sweep min {:f} exceeds limits, limiting to {:f}".format(self.sweepmax, limVmax))
+            self.sweepmin = limVmax
+        if self.sweepmax < limVmin:
             if self.verbose:
-                print("vmax {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmin))
-            self.vmax = limVmin
-        if self.vmax > limVmax:
+                print("Sweep max {:f} exceeds limits, limiting to {:f}".format(self.sweepmax, limVmin))
+            self.sweepmax = limVmin
+        if self.sweepmax > limVmax:
             if self.verbose:
-                print("vmax {:f} exceeds limits, limiting to {:f}".format(self.vmax, limVmax))
-            self.vmax = limVmax
+                print("Sweep max {:f} exceeds limits, limiting to {:f}".format(self.sweepmax, limVmax))
+            self.sweepmax = limVmax
 
     def sort(self):
         """Make sure that vmax is greater than vmin"""
-        if self.vmin > self.vmax:
-            v = self.vmin
-            self.vmin = self.vmax
-            self.vmax = v
+        if self.sweepmin > self.sweepmax:
+            v = self.sweepmin
+            self.sweepmin = self.sweepmax
+            self.sweepmax = v
             self.reverseSweep = not self.reverseSweep
         if self.step < 0:
             self.step = -self.step
@@ -279,20 +276,20 @@ class IV:
         type"""
         # Sanity check values to make sure that requested bias range is
         # within bias limits and that vmin, vmax and step values are sane
-        self.crop()
+        self.cropSweep()
         self.sort()
 
         print("Preparing for sweep...")
         # Calculate sweep values
-        self.BiasPts = np.arange(self.vmin, self.vmax+self.step, self.step)
+        self.SweepPts = np.arange(self.sweepmin, self.sweepmax+self.step, self.step)
         if self.reverseSweep:
             if self.verbose:
-                print("Flipping BiasPts")
-            self.BiasPts = np.flipud(self.BiasPts)
+                print("Flipping SweepPts")
+            self.SweepPts = np.flipud(self.SweepPts)
 
         # Prepares for data collection
-        self.Vdata = np.empty_like(self.BiasPts)
-        self.Idata = np.empty_like(self.BiasPts)
+        self.Vdata = np.empty_like(self.SweepPts)
+        self.Idata = np.empty_like(self.SweepPts)
 
         # Setting voltage to max in preparation for sweep
         if self.reverseSweep:
@@ -303,7 +300,7 @@ class IV:
                 print("\nChanging voltage to minimum...")
 
         self._oldBias = self._bias
-        self.setBias(self.BiasPts[0])
+        self.setSweep(self.SweepPts[0])
 
 
     def runSweep(self):
@@ -320,11 +317,11 @@ class IV:
 
         # Print a header for intermediate output
         if self.verbose:
-            print("\tBias (mV)\tVoltage (mV)\tCurrent (mA)")
+            print("\t{:s}\n".format(self.columnHeaders))
 
         # Carry out the sweep
-        for index, bias in enumerate(self.BiasPts):
-            self.setBias(bias)
+        for index, sweepPt in enumerate(self.SweepPts):
+            self.setSweep(sweepPt)
 
             # Collects data from new bias point
             data = self.getData()
@@ -334,7 +331,13 @@ class IV:
 
             # Outputs data while sweep is being taken
             if index%5 == 0 and self.verbose:
-                print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}".format(bias, self.Vdata[index], self.Idata[index]))
+                print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}".format(self.SweepPts[index], self.Vdata[index], self.Idata[index]))
+
+    def setSweep(self, sweepPt):
+        """Set the bias to the sweepPt value.
+
+        When subclassing, set this to whatever method is required to set the sweep variable."""
+        self.setBias(sweepPt)
 
 
     def endSweep(self):
@@ -358,10 +361,10 @@ class IV:
         out = open(self.save_name, 'w')
 
         # Write a header describing the data
-        out.write("# Bias (mV)\t\tVoltage (mV)\t\tCurrent (mA)\n")
+        out.write("# {:s}\n".format(self.columnHeaders))
         # Write out the data
         for i in range(len(self.Vdata)):
-            out.write("{:.6g},\t{:.6g},\t{:.6g}\n".format(self.BiasPts[i], self.Vdata[i], self.Idata[i]))
+            out.write("{:.6g},\t{:.6g},\t{:.6g}\n".format(self.SweepPts[i], self.Vdata[i], self.Idata[i]))
         out.close()
 
     def plotIV(self):

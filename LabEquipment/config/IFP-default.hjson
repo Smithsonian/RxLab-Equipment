@@ -1,0 +1,23 @@
+# IVP default configuration file
+# Assumes we don't know anything about the bias box, except that we are
+# using a unipolar to bipolar convertor
+{
+    # Uses default DAQ configuration
+    # Uses default IVP configuration
+    "config-file":"IVP-default.hjson",
+    "yig-filter": {
+        "address":"192.168.1.15"
+        # For analog output
+        #"channel":3,
+        #"gain":1.0, # scaling of frequency to voltage out
+        #"offset":0.00 # offset voltage
+    }
+    "settleTime":0.01, # Number of seconds to wait for frequency/PM to settle
+    "sweep":{
+        "min":4.0, # Minimum freq in GHz
+        "max":20.0, # Maximum freq in GHz
+        "step":0.05, # Freq step in GHz
+        "reverse":True,
+        "save-file":"if.dat"
+    }
+}
