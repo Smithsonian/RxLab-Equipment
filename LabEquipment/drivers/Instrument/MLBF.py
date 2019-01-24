@@ -133,9 +133,9 @@ class MLBF(object):
     def setF(self, freq):
         """Set the frequency in MHz"""
         if freq > self.fmax:
-            raise ValueError("MLBF: Requested frequency too high")
+            raise ValueError("MLBF: Requested frequency of {:f} MHz too high".format(freq))
         if freq < self.fmin:
-            raise ValueError("MLBF: Requested frequency too low")
+            raise ValueError("MLBF: Requested frequency of {:f} MHz too low".format(freq))
         self.write("F{:.3f}".format(freq))
         self._f = self.getF()
 

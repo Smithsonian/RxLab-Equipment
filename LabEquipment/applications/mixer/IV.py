@@ -66,7 +66,7 @@ class IV:
             pprint.pprint(self.config)
 
         self._bias = 0.0
-        self.comlumnHeaders = "Bias (mV)\t\tVoltage (mV)\t\tCurrent (mA)"
+        self.columnHeaders = "Bias (mV)\t\tVoltage (mV)\t\tCurrent (mA)"
 
         self.initDAQ()
 
@@ -399,10 +399,10 @@ class IV:
 
 
 if __name__ == "__main__":
-    # This code runs a sweep from <vmax> to <vmin> with stepsize <step> and
+    # This code runs a sweep from <max> to <min> with stepsize <step> and
     # saves the data to <save_name>
     #
-    # Usage: python3 <file.dat> <vmin> <vmax> <step> <*use file>
+    # Usage: python3 <file.dat> <min> <max> <step> <*use file>
 
     test = IV(verbose=True, vverbose=True)
 
@@ -411,14 +411,14 @@ if __name__ == "__main__":
             test.readFile(sys.argv[5])
             test.initDAQ()
         test.save_name = sys.argv[1]
-        test.vmin = float(sys.argv[2])
-        test.vmax = float(sys.argv[3])
+        test.sweepmin = float(sys.argv[2])
+        test.sweepmax = float(sys.argv[3])
         test.step = float(sys.argv[4])
 
     else:
         test.save_name = input("Output file name: ")
-        test.vmin = float(input("Minimum voltage [mV]: "))
-        test.vmax = float(input("Maximum voltage [mV]: "))
+        test.sweepmin = float(input("Minimum voltage [mV]: "))
+        test.sweepmax = float(input("Maximum voltage [mV]: "))
 
         test.step = float(input("Step [mV]: "))
 

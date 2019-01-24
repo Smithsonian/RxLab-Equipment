@@ -22,7 +22,7 @@ from LabEquipment.applications.mixer import _default_IFP_config
 from LabEquipment.applications.mixer import IVP
 
 
-class IFP(IV.IVP):
+class IFP(IVP.IVP):
     """An object that can set the frequency of a YIG filter, and measure
     the IF power with either a GPIB connected power meter or an analog power
     signal connected to the bias DAQ unit"""
@@ -57,7 +57,7 @@ class IFP(IV.IVP):
         self.yig = None
         self.columnHeaders = "YIG Freq (GHz)\tVoltage (mV)\tCurrent (mA)\tIF Power"
 
-        self.initYig()
+        self.initYIG()
 
     def __delete__(self):
         self.endYIG()
@@ -143,8 +143,8 @@ class IFP(IV.IVP):
         """Limits sweep frequencies to max and min YIG frequencies
 
         Overrides cropSweep from IV object"""
-        limFmin = self.yig.fmin
-        limFmax = self.yig.fmax
+        limFmin = self.yig.fmin/1000.0
+        limFmax = self.yig.fmax/1000.0
         if self.sweepmin < limFmin:
             if self.verbose:
                 print("Sweep min {:f} exceeds limits, limiting to {:f}".format(self.sweepmax, limFmin))
@@ -166,7 +166,7 @@ class IFP(IV.IVP):
 
     def prepSweep(self):
         """Store current YIG filter setting, then reuse IVP.prepSweep()"""
-        self._oldYIGFreq = self.yig.f
+        self._oldYIGFreq = self.yig.f/1000.0
         super().prepSweep()
 
     # reuse IVP.runSweep()
@@ -201,7 +201,8 @@ class IFP(IV.IVP):
 
     def plotPF(self):
         # Plot PF curve
-        self.ax2.plot(self.Vdata, self.Pdata, 'b-')
+        self.ax2.plot(self.SweepPts, self.Pdata, 'b-')
+        self.ax2.set(xlabel="YIG Frequency (GHz)")
         self.ax2.set(ylabel="IF Power")
         self.ax2.set(title="IF Sweep")
 

@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 #
-# This code runs a sweep from <vmax> to <vmin> with stepsize <step> and
+# This code runs a sweep from <max> to <min> with stepsize <step> and
 # saves the data to <save_name>.  Uses an optional <*config file>
 #
-# Usage: iv.py <*config file> <file.dat> <vmin> <vmax> <step>
+# Usage: iv.py <*config file> <file.dat> <min> <max> <step>
 from LabEquipment.applications.mixer.IV import *
 import sys, time
 from pprint import pprint
@@ -20,8 +20,8 @@ def main():
     # See if sweep parameters are on the command line
     if len(sys.argv) >= 5:
         test.save_name = sys.argv[1]
-        test.vmin = float(sys.argv[2])
-        test.vmax = float(sys.argv[3])
+        test.sweepmin = float(sys.argv[2])
+        test.sweepmax = float(sys.argv[3])
         test.step = float(sys.argv[4])
     else:
         # See if the config file defined a sweep, if not, ask for values
@@ -31,8 +31,8 @@ def main():
             print("test.config error caught")
             pprint(test.config)
             test.save_name = input("Output file name: ")
-            test.vmin = float(input("Minimum voltage [mV]: "))
-            test.vmax = float(input("Maximum voltage [mV]: "))
+            test.sweepmin = float(input("Minimum voltage [mV]: "))
+            test.sweepmax = float(input("Maximum voltage [mV]: "))
             test.step = float(input("Step [mV]: "))
 
     # Run a sweep
