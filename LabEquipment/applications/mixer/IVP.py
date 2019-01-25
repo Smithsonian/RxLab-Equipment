@@ -14,6 +14,7 @@ import sys
 import time
 import visa
 import numpy as np
+import pprint
 
 import matplotlib.pyplot as plt
 import LabEquipment.drivers.Instrument.HP436A as PM

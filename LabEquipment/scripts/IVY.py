@@ -24,11 +24,15 @@ def main():
         test.sweepmin = float(sys.argv[2])
         test.sweepmax = float(sys.argv[3])
         test.step = float(sys.argv[4])
+
     else:
-        test.save_name = input("Output file name: ")
-        test.sweepmin = float(input("Minimum voltage [mV]: "))
-        test.sweepmax = float(input("Maximum voltage [mV]: "))
-        test.step = float(input("Step [mV]: "))
+        try:
+            sweepConf = test.config["sweep"]
+        except KeyError:
+            test.save_name = input("Output file name: ")
+            test.sweepmin = float(input("Minimum voltage [mV]: "))
+            test.sweepmax = float(input("Maximum voltage [mV]: "))
+            test.step = float(input("Step [mV]: "))
 
     # Run a sweep
     test.sweep()

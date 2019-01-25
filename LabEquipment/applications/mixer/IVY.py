@@ -15,6 +15,7 @@ import sys
 import time
 import visa
 import numpy as np
+import pprint
 
 import matplotlib.pyplot as plt
 
@@ -23,37 +24,37 @@ from LabEquipment.applications.mixer import _default_IVY_config
 from LabEquipment.applications.mixer import TempSensor
 
 class IVY(IVP.IVP):
-        """An object that can set and measure the bias on an SIS device, and measure
-        the IF power for each of two receiver loads."""
-        def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
-            super().__init__(config=config, configFile=configFile, verbose=verbose, vverbose=vverbose)
-            self.setConfig(_default_IVY_config.defaultConfig)
+    """An object that can set and measure the bias on an SIS device, and measure
+    the IF power for each of two receiver loads."""
+    def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
+        super().__init__(config=config, configFile=configFile, verbose=verbose, vverbose=vverbose)
+        self.setConfig(_default_IVY_config.defaultConfig)
+
+        if self.vverbose:
+            print("IVY.__init__: Default Config Loaded: Current config:")
+            pprint.pprint(self.config)
+
+        if configFile != None:
+            self.readConfig(configFile)
+            if self.vverbose:
+                print("IVY.__init__: Config Loaded from: {:s}".format(configFile))
+                pprint.pprint(self.config)
+        if config != None:
+            if self.vverbose:
+                print("IVY.__init__: Config passed to __init__:")
+                pprint.pprint(config)
+
+            self.setConfig(config)
 
             if self.vverbose:
-                print("IVY.__init__: Default Config Loaded: Current config:")
+                print("IVY.__init__: Config now:")
                 pprint.pprint(self.config)
 
-            if configFile != None:
-                self.readConfig(configFile)
-                if self.vverbose:
-                    print("IVY.__init__: Config Loaded from: {:s}".format(configFile))
-                    pprint.pprint(self.config)
-            if config != None:
-                if self.vverbose:
-                    print("IVY.__init__: Config passed to __init__:")
-                    pprint.pprint(config)
+        if self.vverbose:
+            print("IVY.__init__: Done setting configFile and config: Current config:")
+            pprint.pprint(self.config)
 
-                self.setConfig(config)
-
-                if self.vverbose:
-                    print("IVY.__init__: Config now:")
-                    pprint.pprint(self.config)
-
-            if self.vverbose:
-                print("IVY.__init__: Done setting configFile and config: Current config:")
-                pprint.pprint(self.config)
-
-            self.columnHeaders = "Bias (mV)\tVoltage (mV)\tCurrent (mA)\tHot IF Power\tCold IF Power\tY Factor\tNoise Temp (K)\tHot Load Temp (K)\tCold Load Temp (K)"
+        self.columnHeaders = "Bias (mV)\tVoltage (mV)\tCurrent (mA)\tHot IF Power\tCold IF Power\tY Factor\tNoise Temp (K)\tHot Load Temp (K)\tCold Load Temp (K)"
 
     def _applyConfig(self):
         super()._applyConfig()
@@ -185,7 +186,7 @@ class IVY(IVP.IVP):
         in the beam.
 
         Override this for other sweep types."""
-        self.setLoadPostion(variable)
+        self.setLoadPosition(variable)
 
 
     def innerSweep(self, sweepPts):
@@ -240,12 +241,12 @@ class IVY(IVP.IVP):
             # We need to ask the user to move the load
             if position == 1:
                 try:
-                    save = input("Place hot load in beam and then press any key to continue.")
+                    save = input("Place hot load in beam and then press Enter key to continue.")
                 except SyntaxError:
                     pass
             elif position == 0:
                 try:
-                    save = input("Place hot load in beam and then press any key to continue.")
+                    save = input("Place cold load in beam and then press Enter key to continue.")
                 except SyntaxError:
                     pass
             else:
@@ -263,7 +264,7 @@ class IVY(IVP.IVP):
 
         Start and end indices are passed by the inner loop to allow for intermediate
         output during a scan."""
-        return (self.Thdata[start:end] - self.Yfact[start:end]*self.Tcdata[start:end])/(self.Yfact[start:end]-1)
+        return (self.Thdata[start:end] - self.Ydata[start:end]*self.Tcdata[start:end])/(self.Ydata[start:end]-1)
 
     def spreadsheet(self):
         """Output the acquired data to a CSV file.
@@ -352,7 +353,7 @@ if __name__ == "__main__":
     #
     # Usage: python3 <file.dat> <min> <max> <step> <*use file>
 
-    test = IVY(verbose=True, vverbose=True)
+    test = IVY(verbose=True, vverbose=False)
 
     if len(sys.argv) >= 5:
         if len(sys.argv) == 6:
