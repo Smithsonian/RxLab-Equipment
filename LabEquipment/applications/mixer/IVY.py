@@ -131,7 +131,7 @@ class IVY(IVP.IVP):
             j = self.innerScanCycle
         else:
             j = len(self.SweepPts)
-            
+
         cont = True
         # Start of outer loop
         while cont:
@@ -281,3 +281,109 @@ class IVY(IVP.IVP):
         for i in range(len(self.Vdata)):
             out.write("{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g}\n".format(self.SweepPts[i], self.Vdata[i], self.Idata[i], self.Hdata[i], self.Cdata[i], self.Ydata[i], self.Trxdata[i], self.Thdata[i], self.Tcdata[i]))
         out.close()
+
+    def plotPV(self):
+        # Plot PV curve
+        self.ax2.plot(self.Vdata, self.Hdata, 'r-', label="Hot")
+        self.ax2.plot(self.Vdata, self.Cdata, 'b-', label="Cold")
+        self.ax2.set(ylabel="Power (W)")
+
+    def plotYV(self):
+        """Plot the IV curve data on the figure"""
+        self.ax.plot(self.Vdata, self.Idata, 'g-', label="Y Factor")
+        self.ax.set(xlabel="Voltage (mV)")
+        self.ax.set(ylabel="Y Factor")
+        self.ax.set(title="Y Factor Sweep")
+        self.ax.set_ylim(bottom=0)
+        self.ax.grid()
+
+    def plotTV(self):
+        # Plot PV curve
+        self.ax2.plot(self.Vdata, self.Trxdata, 'r-', label="T_rx")
+        self.ax2.set(ylabel="Noise Temperature (K)")
+        # Set some sensible limit on Y range
+        maxPlot = np.percentile(np.clip(self.Trxdata, 0, None), 10)*10
+        self.ax2.set_ylim(bottom=0, top=maxPlot)
+
+    def plot(self, ion=True):
+        """Plot the acquired data from the sweep.
+
+        This should be overridden to plot additional data when subclassing IV
+        """
+        #if ion:
+        #    plt.ion()
+        self.fig, self.ax = plt.subplots()
+        self.plotIV()
+        self.ax2 = self.ax.twinx()
+        self.plotPV()
+        plt.show()
+
+    def plot2(self, ion=True):
+        """Plot the acquired data from the sweep.
+
+        This should be overridden to plot additional data when subclassing IV
+        """
+        self.fig2, self.ax = plt.subplots()
+        self.plotYV()
+        self.ax2 = self.ax.twinx()
+        self.plotTV()
+        plt.show()
+
+
+    def savefig(self, filename=None):
+        """Save the current figure to a file"""
+        if filename==None:
+            filename = self.save_name.split(".")[:-1]
+            filename.append("png")
+            filename = ".".join(filename)
+
+        if self.fig:
+            self.fig.savefig(filename)
+
+        if self.fig2:
+            filename = filename.split(".")[:-1] + "Trx"
+            filename.append("png")
+            filename = ".".join(filename)
+            self.fig2.savefig(filename)
+
+if __name__ == "__main__":
+    # This code runs a sweep from <max> to <min> with stepsize <step> and
+    # saves the data to <save_name>
+    #
+    # Usage: python3 <file.dat> <min> <max> <step> <*use file>
+
+    test = IVY(verbose=True, vverbose=True)
+
+    if len(sys.argv) >= 5:
+        if len(sys.argv) == 6:
+            test.readFile(sys.argv[5])
+            test.initDAQ()
+        test.save_name = sys.argv[1]
+        test.sweepmin = float(sys.argv[2])
+        test.sweepmax = float(sys.argv[3])
+        test.step = float(sys.argv[4])
+    else:
+        test.save_name = input("Output file name: ")
+        test.sweepmin = float(input("Minimum voltage [mV]: "))
+        test.sweepmax = float(input("Maximum voltage [mV]: "))
+        test.step = float(input("Step [mV]: "))
+
+    # Run a sweep
+    test.sweep()
+
+    # Output and plot data
+    test.spreadsheet()
+    test.plot()
+    # Wait until the plot is done
+    try:
+        save = input("Save Plot? [Y/N]")
+        if save =="Y":
+            test.savefig()
+    except SyntaxError:
+        pass
+
+
+    # Close down the IV object cleanly, releasing the DAQ and PM
+    del test
+
+    print("End.")
