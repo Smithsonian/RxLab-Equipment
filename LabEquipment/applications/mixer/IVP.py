@@ -221,7 +221,7 @@ class IVP(IV.IV):
     def plotPV(self):
         # Plot PV curve
         self.ax2.plot(self.Vdata, self.Pdata, 'b-')
-        self.ax2.set(ylabel="Power (W)")
+        self.ax2.set(ylabel="Power")
         self.ax2.set(title="IV Sweep")
 
     def plot(self, ion=True):

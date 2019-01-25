@@ -14,7 +14,12 @@ def main():
     #
     # Usage: python3 <file.dat> <min> <max> <step> <*use file>
 
-    test = IVY(verbose=True, vverbose=True)
+    if len(sys.argv) == 6 or len(sys.argv) == 2:
+        confFile = sys.argv.pop(1)
+    else:
+        confFile = "IVY-config.hjson"
+
+    test = IVY(configFile=confFile, verbose=True, vverbose=False)
 
     if len(sys.argv) >= 5:
         if len(sys.argv) == 6:

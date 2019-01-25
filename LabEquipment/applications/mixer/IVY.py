@@ -88,9 +88,9 @@ class IVY(IVP.IVP):
                 except KeyError:
                     if self.verbose:
                         print("Missing load mover configuration")
-            else: # manual, run entire scan in one block
-                if self.innerScanCycle > 0:
-                    self.innerScanCycle = 0
+            #else: # manual, run entire scan in one block
+                #if self.innerScanCycle > 0:
+                #    self.innerScanCycle = 0
         except KeyError:
             if self.verbose:
                 print("Invalid Y Factor configuration found")
@@ -172,7 +172,7 @@ class IVY(IVP.IVP):
 
             if self.verbose:
                 for index in range(i, j, 5):
-                    print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3f}".format(self.SweepPts[index], self.Vdata[index], self.Idata[index], self.Hdata[index], self.Cdata[index], self.Ydata[index], self.Trxdata[index]))
+                    print("\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}".format(self.SweepPts[index], self.Vdata[index], self.Idata[index], self.Hdata[index], self.Cdata[index], self.Ydata[index], self.Trxdata[index]))
             # increment indices for outer loop
             i = i+self.innerScanCycle
             j = j+self.innerScanCycle
@@ -287,7 +287,7 @@ class IVY(IVP.IVP):
         # Plot PV curve
         self.ax2.plot(self.Vdata, self.Hdata, 'r-', label="Hot")
         self.ax2.plot(self.Vdata, self.Cdata, 'b-', label="Cold")
-        self.ax2.set(ylabel="Power (W)")
+        self.ax2.set(ylabel="Power")
 
     def plotYV(self):
         """Plot the IV curve data on the figure"""
@@ -295,7 +295,7 @@ class IVY(IVP.IVP):
         self.ax.set(xlabel="Voltage (mV)")
         self.ax.set(ylabel="Y Factor")
         self.ax.set(title="Y Factor Sweep")
-        self.ax.set_ylim(bottom=0)
+        self.ax.set_ylim(bottom=0.0)
         self.ax.grid()
 
     def plotTV(self):
@@ -304,7 +304,9 @@ class IVY(IVP.IVP):
         self.ax2.set(ylabel="Noise Temperature (K)")
         # Set some sensible limit on Y range
         maxPlot = np.percentile(np.clip(self.Trxdata, 0, None), 10)*10
-        self.ax2.set_ylim(bottom=0, top=maxPlot)
+        if maxPlot < 0.1:
+            maxPlot = 1000.0
+        self.ax2.set_ylim(bottom=0.0, top=maxPlot)
 
     def plot(self, ion=True):
         """Plot the acquired data from the sweep.
@@ -342,7 +344,7 @@ class IVY(IVP.IVP):
             self.fig.savefig(filename)
 
         if self.fig2:
-            filename = filename.split(".")[:-1] + "Trx"
+            filename = filename.split(".")[:-1] + ["_Trx"]
             filename.append("png")
             filename = ".".join(filename)
             self.fig2.savefig(filename)
