@@ -127,8 +127,11 @@ class IVY(IVP.IVP):
         hotLoad = 1
         coldLoad = 0
         i = 0
-        if
+        if self.innerScanCycle < len(self.SweepPts) and self.innerScanCycle > 0:
             j = self.innerScanCycle
+        else:
+            j = len(self.SweepPts)
+            
         cont = True
         # Start of outer loop
         while cont:
