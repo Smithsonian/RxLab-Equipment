@@ -53,7 +53,7 @@ class IVY(IVP.IVP):
                 print("IVY.__init__: Done setting configFile and config: Current config:")
                 pprint.pprint(self.config)
 
-            self.columnHeaders = "Bias (mV)\tVoltage (mV)\tCurrent (mA)\tHot IF Power\tCold IF Power\tY Factor\tNoise Temp"
+            self.columnHeaders = "Bias (mV)\tVoltage (mV)\tCurrent (mA)\tHot IF Power\tCold IF Power\tY Factor\tNoise Temp (K)\tHot Load Temp (K)\tCold Load Temp (K)"
 
     def _applyConfig(self):
         super()._applyConfig()
@@ -348,7 +348,7 @@ class IVY(IVP.IVP):
 
 if __name__ == "__main__":
     # This code runs a sweep from <max> to <min> with stepsize <step> and
-    # saves the data to <save_name>
+    # saves the data to <save_name>, taking Y factors and Noise temperatures.
     #
     # Usage: python3 <file.dat> <min> <max> <step> <*use file>
 
@@ -374,9 +374,10 @@ if __name__ == "__main__":
     # Output and plot data
     test.spreadsheet()
     test.plot()
+    test.plot2()
     # Wait until the plot is done
     try:
-        save = input("Save Plot? [Y/N]")
+        save = input("Save Plots? [Y/N]")
         if save =="Y":
             test.savefig()
     except SyntaxError:
