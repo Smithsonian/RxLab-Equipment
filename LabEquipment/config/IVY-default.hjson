@@ -13,7 +13,10 @@
             "config-file":"LoadMover-default.hjson"
         }
         "load-cycle-length":0, # number of points to take before switching load. Use 0 to take all points before switching (forced by manual mode), or -1 to take all hot, all cold, the all hot again, averaging hot measurements
-        "cold-load-temp": 78.5, # assumed temperature of cold load in K
+        "cold-load-temp": 78.5, # assumed temperature of cold load in K, or "sensor" (not implemented yet)
+        #"cold-load-sensor":{
+        #    "config-file":"ColdLoadSensor-default.hjson"
+        #}
         "hot-load-temp":293.0, # assumed temperature of hot load in K, or "sensor" (not implemented yet)
         #"hot-load-sensor":{
         #    "config-file":"HotLoadSensor-default.hjson"
