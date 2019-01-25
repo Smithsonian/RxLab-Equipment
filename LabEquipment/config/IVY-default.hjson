@@ -8,15 +8,15 @@
     "settleTime":0.01, # Number of seconds to wait for bias to settle
     "rate":12000, # Lower scanning rate to allow for extra channel for power meter
     "yfactor":{ # Y factor measurement set up
-        "load-switching":"manual", # One of "manual" or "load-mover"
+        "load-switching":"manual", # One of "manual" or "load-mover" (not implemented yet)
         "load-mover":{
             "config-file":"LoadMover-default.hjson"
         }
         "load-cycle-length":0, # number of points to take before switching load. Use 0 to take all points before switching (forced by manual mode), or -1 to take all hot, all cold, the all hot again, averaging hot measurements
         "cold-load-temp": 78.5, # assumed temperature of cold load in K
-        "hot-load-temp":"sensor", # assumed temperature of hot load in K, or "sensor"
-        "hot-load-sensor":{
-            "config-file":"HotLoadSensor-default.hjson"
-        }
+        "hot-load-temp":293.0, # assumed temperature of hot load in K, or "sensor" (not implemented yet)
+        #"hot-load-sensor":{
+        #    "config-file":"HotLoadSensor-default.hjson"
+        #}
     }
 }

@@ -1,11 +1,10 @@
 #! /usr/bin/env python
 #                                                #
-# Load Mover                                     #
+# Load Mover object and code for testing         #
 #                                                #
 # Based on code by Larry Gardner, July 2018      #
 # Paul Grimes, January 2019                      #
 #                                                #
-# Code for testing Load Mover                    #
 ##################################################
 
 from __future__ import print_function, division
