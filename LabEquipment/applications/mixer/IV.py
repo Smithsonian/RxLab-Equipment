@@ -369,7 +369,7 @@ class IV:
 
     def plotIV(self):
         """Plot the IV curve data on the figure"""
-        self.ax.plot(self.Vdata, self.Idata, 'r-')
+        self.ax.plot(self.Vdata, self.Idata, 'k-')
         self.ax.set(xlabel="Voltage (mV)")
         self.ax.set(ylabel="Current (mA)")
         self.ax.set(title="IV Sweep")

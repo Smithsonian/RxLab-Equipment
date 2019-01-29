@@ -19,42 +19,42 @@ import pprint
 
 import matplotlib.pyplot as plt
 
-from LabEquipment.applications.mixer import IVP
-from LabEquipment.applications.mixer import _default_IVY_config
+from LabEquipment.applications.mixer import IFP
+from LabEquipment.applications.mixer import _default_IFY_config
 from LabEquipment.applications.mixer import TempSensor
 
-class IVY(IVP.IVP):
-    """An object that can set and measure the bias on an SIS device, and measure
-    the IF power for each of two receiver loads."""
+class IFY(IFP.IFP):
+    """An object that can set IF frequency of a YIG filter, and measure
+    the output power for each of two receiver loads."""
     def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
         super().__init__(config=config, configFile=configFile, verbose=verbose, vverbose=vverbose)
-        self.setConfig(_default_IVY_config.defaultConfig)
+        self.setConfig(_default_IFY_config.defaultConfig)
 
         if self.vverbose:
-            print("IVY.__init__: Default Config Loaded: Current config:")
+            print("IFY.__init__: Default Config Loaded: Current config:")
             pprint.pprint(self.config)
 
         if configFile != None:
             self.readConfig(configFile)
             if self.vverbose:
-                print("IVY.__init__: Config Loaded from: {:s}".format(configFile))
+                print("IFY.__init__: Config Loaded from: {:s}".format(configFile))
                 pprint.pprint(self.config)
         if config != None:
             if self.vverbose:
-                print("IVY.__init__: Config passed to __init__:")
+                print("IFY.__init__: Config passed to __init__:")
                 pprint.pprint(config)
 
             self.setConfig(config)
 
             if self.vverbose:
-                print("IVY.__init__: Config now:")
+                print("IFY.__init__: Config now:")
                 pprint.pprint(self.config)
 
         if self.vverbose:
-            print("IVY.__init__: Done setting configFile and config: Current config:")
+            print("IFY.__init__: Done setting configFile and config: Current config:")
             pprint.pprint(self.config)
 
-        self.columnHeaders = "Bias (mV)\tVoltage (mV)\tCurrent (mA)\tHot IF Power\tCold IF Power\tY Factor\tNoise Temp (K)\tHot Load Temp (K)\tCold Load Temp (K)"
+        self.columnHeaders = "YIG Freq (GHz)\tVoltage (mV)\tCurrent (mA)\tHot IF Power\tCold IF Power\tY Factor\tNoise Temp (K)\tHot Load Temp (K)\tCold Load Temp (K)"
 
     def _applyConfig(self):
         super()._applyConfig()
@@ -182,7 +182,7 @@ class IVY(IVP.IVP):
     def prepInnerSweep(self, variable):
         """Set up for the inner sweep.
 
-        For IVY, this calls setLoadPosition, to set whether the hot or cold load is
+        For IFY, this calls setLoadPosition, to set whether the hot or cold load is
         in the beam.
 
         Override this for other sweep types."""
@@ -192,7 +192,7 @@ class IVY(IVP.IVP):
     def innerSweep(self, sweepPts):
         """An inner loop called within the main sweep.
 
-        For IVY, this returns V, I and P data over sweepPts.
+        For IFY, this returns V, I and P data over sweepPts.
 
         Override this for other sweep types."""
         Vdata = np.empty_like(sweepPts)
@@ -283,24 +283,24 @@ class IVY(IVP.IVP):
             out.write("{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g},\t{:.6g}\n".format(self.SweepPts[i], self.Vdata[i], self.Idata[i], self.Hdata[i], self.Cdata[i], self.Ydata[i], self.Trxdata[i], self.Thdata[i], self.Tcdata[i]))
         out.close()
 
-    def plotPV(self):
-        # Plot PV curve
-        self.ax2.plot(self.Vdata, self.Hdata, 'r-', label="Hot")
-        self.ax2.plot(self.Vdata, self.Cdata, 'b-', label="Cold")
+    def plotPF(self):
+        """Plot the hot and cold load IF powers against YIG Frequency"""
+        self.ax2.plot(self.SweepPts, self.Hdata, 'r-', label="Hot")
+        self.ax2.plot(self.SweepPts, self.Cdata, 'b-', label="Cold")
         self.ax2.set(ylabel="Power")
 
-    def plotYV(self):
-        """Plot the IV curve data on the figure"""
-        self.ax.plot(self.Vdata, self.Idata, 'g-', label="Y Factor")
-        self.ax.set(xlabel="Voltage (mV)")
+    def plotYF(self):
+        """Plot Y-Factor against YIG Frequency"""
+        self.ax.plot(self.SweepPts, self.Ydata, 'g-', label="Y Factor")
+        self.ax.set(xlabel="YIG Frequency (GHz)")
         self.ax.set(ylabel="Y Factor")
         self.ax.set(title="Y Factor Sweep")
         self.ax.set_ylim(bottom=0.0)
         self.ax.grid()
 
-    def plotTV(self):
-        # Plot PV curve
-        self.ax2.plot(self.Vdata, self.Trxdata, 'r-', label="T_rx")
+    def plotTF(self):
+        """Plot Noise Temperature against YIG Frequency"""
+        self.ax2.plot(self.SweepPts, self.Trxdata, 'r-', label="T_rx")
         self.ax2.set(ylabel="Noise Temperature (K)")
         # Set some sensible limit on Y range
         maxPlot = np.percentile(np.clip(self.Trxdata, 0, None), 10)*10
@@ -315,10 +315,8 @@ class IVY(IVP.IVP):
         """
         #if ion:
         #    plt.ion()
-        self.fig, self.ax = plt.subplots()
-        self.plotIV()
-        self.ax2 = self.ax.twinx()
-        self.plotPV()
+        self.fig, self.ax2 = plt.subplots()
+        self.plotPF()
         plt.show()
 
     def plot2(self, ion=True):
@@ -327,9 +325,9 @@ class IVY(IVP.IVP):
         This should be overridden to plot additional data when subclassing IV
         """
         self.fig2, self.ax = plt.subplots()
-        self.plotYV()
+        self.plotYF()
         self.ax2 = self.ax.twinx()
-        self.plotTV()
+        self.plotTF()
         plt.show()
 
 
@@ -355,7 +353,7 @@ if __name__ == "__main__":
     #
     # Usage: python3 <file.dat> <min> <max> <step> <*use file>
 
-    test = IVY(verbose=True, vverbose=False)
+    test = IFY(verbose=True, vverbose=False)
 
     if len(sys.argv) >= 5:
         if len(sys.argv) == 6:
@@ -367,9 +365,9 @@ if __name__ == "__main__":
         test.step = float(sys.argv[4])
     else:
         test.save_name = input("Output file name: ")
-        test.sweepmin = float(input("Minimum voltage [mV]: "))
-        test.sweepmax = float(input("Maximum voltage [mV]: "))
-        test.step = float(input("Step [mV]: "))
+        test.sweepmin = float(input("Minimum Frequency [GHz]: "))
+        test.sweepmax = float(input("Maximum Frequency [GHz] "))
+        test.step = float(input("Step [GHz]: "))
 
     # Run a sweep
     test.sweep()

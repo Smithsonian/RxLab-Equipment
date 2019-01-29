@@ -1,9 +1,9 @@
-# IVY default configuration file
+# IFY default configuration file
 {
     # Uses default DAQ configuration
     # Uses default IV configuration
-    # Uses default IVP configuration
-    "config-file":"IVP-default.hjson",
+    # Uses default IFP configuration
+    "config-file":"IFP-default.hjson",
     # Increase settleTime to allow PM to settle
     "settleTime":0.01, # Number of seconds to wait for bias to settle
     "rate":12000, # Lower scanning rate to allow for extra channel for power meter

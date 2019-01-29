@@ -3,7 +3,7 @@
     # Uses default DAQ configuration
     # Uses default IV configuration
     # Uses default IVP configuration
-    "config-file":"IVP-default.hjson",
+    "config-file":"IVP-config.hjson",
     # Increase settleTime to allow PM to settle
     "settleTime":0.01, # Number of seconds to wait for bias to settle
     "rate":12000, # Lower scanning rate to allow for extra channel for power meter
@@ -12,7 +12,7 @@
         "load-mover":{
             "config-file":"LoadMover-default.hjson"
         }
-        "load-cycle-length":0, # number of points to take before switching load. Use 0 to take all points before switching (forced by manual mode), or -1 to take all hot, all cold, the all hot again, averaging hot measurements
+        "load-cycle-length":50, # number of points to take before switching load. Use 0 to take all points before switching (forced by manual mode), or -1 to take all hot, all cold, the all hot again, averaging hot measurements
         "cold-load-temp": 78.5, # assumed temperature of cold load in K, or "sensor" (not implemented yet)
         #"cold-load-sensor":{
         #    "config-file":"ColdLoadSensor-default.hjson"

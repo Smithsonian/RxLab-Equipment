@@ -14,6 +14,7 @@ import sys
 import time
 import visa
 import numpy as np
+import pprint
 
 import matplotlib.pyplot as plt
 import LabEquipment.drivers.Instrument.HP436A as PM
@@ -220,7 +221,7 @@ class IVP(IV.IV):
     def plotPV(self):
         # Plot PV curve
         self.ax2.plot(self.Vdata, self.Pdata, 'b-')
-        self.ax2.set(ylabel="Power (W)")
+        self.ax2.set(ylabel="Power")
         self.ax2.set(title="IV Sweep")
 
     def plot(self, ion=True):

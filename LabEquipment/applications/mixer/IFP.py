@@ -13,6 +13,7 @@ import sys
 import time
 import visa
 import numpy as np
+import pprint
 
 import matplotlib.pyplot as plt
 import LabEquipment.drivers.Instrument.MLBF as MLBF
@@ -199,8 +200,16 @@ class IFP(IVP.IVP):
 
         out.close()
 
+    def plotIF(self):
+        """Plot IF curve - will be a straight line for typical YIG usage"""
+        self.ax.plot(self.SweepPts, self.Idata, 'k-')
+        self.ax.set(xlabel="YIG Frequency (GHz)")
+        self.ax.set(ylabel="Current (mA)")
+        self.ax.set(title="IV Sweep")
+        self.ax.grid()
+
     def plotPF(self):
-        # Plot PF curve
+        """Plot the IF power against YIG frequency (GHz)"""
         self.ax2.plot(self.SweepPts, self.Pdata, 'b-')
         self.ax2.set(xlabel="YIG Frequency (GHz)")
         self.ax2.set(ylabel="IF Power")
