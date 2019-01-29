@@ -28,7 +28,7 @@ class IFY(IFP.IFP):
     the output power for each of two receiver loads."""
     def __init__(self, config=None, configFile=None, verbose=False, vverbose=False):
         super().__init__(config=config, configFile=configFile, verbose=verbose, vverbose=vverbose)
-        self.setConfig(_default_IVY_config.defaultConfig)
+        self.setConfig(_default_IFY_config.defaultConfig)
 
         if self.vverbose:
             print("IFY.__init__: Default Config Loaded: Current config:")
@@ -284,13 +284,13 @@ class IFY(IFP.IFP):
         out.close()
 
     def plotPF(self):
-        # Plot PV curve
+        """Plot the hot and cold load IF powers against YIG Frequency"""
         self.ax2.plot(self.SweepPts, self.Hdata, 'r-', label="Hot")
         self.ax2.plot(self.SweepPts, self.Cdata, 'b-', label="Cold")
         self.ax2.set(ylabel="Power")
 
-    def plotYV(self):
-        """Plot the IV curve data on the figure"""
+    def plotYF(self):
+        """Plot Y-Factor against YIG Frequency"""
         self.ax.plot(self.SweepPts, self.Ydata, 'g-', label="Y Factor")
         self.ax.set(xlabel="YIG Frequency (GHz)")
         self.ax.set(ylabel="Y Factor")
@@ -298,8 +298,8 @@ class IFY(IFP.IFP):
         self.ax.set_ylim(bottom=0.0)
         self.ax.grid()
 
-    def plotTV(self):
-        # Plot PV curve
+    def plotTF(self):
+        """Plot Noise Temperature against YIG Frequency"""
         self.ax2.plot(self.SweepPts, self.Trxdata, 'r-', label="T_rx")
         self.ax2.set(ylabel="Noise Temperature (K)")
         # Set some sensible limit on Y range
@@ -315,10 +315,8 @@ class IFY(IFP.IFP):
         """
         #if ion:
         #    plt.ion()
-        self.fig, self.ax = plt.subplots()
-        self.plotIV()
-        self.ax2 = self.ax.twinx()
-        self.plotPV()
+        self.fig, self.ax2 = plt.subplots()
+        self.plotPF()
         plt.show()
 
     def plot2(self, ion=True):
@@ -327,9 +325,9 @@ class IFY(IFP.IFP):
         This should be overridden to plot additional data when subclassing IV
         """
         self.fig2, self.ax = plt.subplots()
-        self.plotYV()
+        self.plotYF()
         self.ax2 = self.ax.twinx()
-        self.plotTV()
+        self.plotTF()
         plt.show()
 
 

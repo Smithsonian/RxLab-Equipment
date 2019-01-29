@@ -22,4 +22,4 @@ def main():
     # Run a sweep
     test.setLoadPosition(loadPos)
 
-    print("Load control bit set to {:}".format(loadPos)
+    print("Load control bit set to {:}".format(loadPos))
