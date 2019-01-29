@@ -1,0 +1,25 @@
+# IFY default configuration file
+{
+    # Uses default DAQ configuration
+    # Uses default IV configuration
+    # Uses default IFP configuration
+    "config-file":"IFP-config.hjson",
+    # Increase settleTime to allow PM to settle
+    "settleTime":0.01, # Number of seconds to wait for bias to settle
+    "rate":12000, # Lower scanning rate to allow for extra channel for power meter
+    "yfactor":{ # Y factor measurement set up
+        "load-switching":"manual", # One of "manual" or "load-mover" (not implemented yet)
+        "load-mover":{
+            "config-file":"LoadMover-default.hjson"
+        }
+        "load-cycle-length":50, # number of points to take before switching load. Use 0 to take all points before switching (forced by manual mode), or -1 to take all hot, all cold, the all hot again, averaging hot measurements
+        "cold-load-temp": 78.5, # assumed temperature of cold load in K, or "sensor" (not implemented yet)
+        #"cold-load-sensor":{
+        #    "config-file":"ColdLoadSensor-default.hjson"
+        #}
+        "hot-load-temp":293.0, # assumed temperature of hot load in K, or "sensor" (not implemented yet)
+        #"hot-load-sensor":{
+        #    "config-file":"HotLoadSensor-default.hjson"
+        #}
+    }
+}
