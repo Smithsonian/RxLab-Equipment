@@ -3,9 +3,10 @@
 
 from ..Instrument import Instrument
 import time
+import statistics
 
 class PowerMeter(Instrument.Instrument):
-    def __init__(self, resource):
+    def __init__(self, resource, range="9", mode="A", averaging="None", Navg=3):
         """Create Spectrum Analyzer object from a PyVISA resource:
         rm = pyvisa.ResourceManager()
         pm = PowerMeter(rm.open_resource("GPIB::12"))
@@ -19,14 +20,53 @@ class PowerMeter(Instrument.Instrument):
         self.resource.timeout = 5000
 
         self._ranges = list(" IJKLM")
+        self._rranges = ["1", "2", "3", "4", "5", "9"]
+        self.range = range
         self._modes = { "A":"Watts", "B":"dB Relative", "C": "dB Ref", "D":"dBm"}
+        self.mode = mode
         self._statuses = {"P":"Data Valid", "Q":"Watts, under range", "R":"Over range", "S":"dB, under range", "T":"Auto zero under range, 1", "U":"Auto zero under range, 2-5", "V":"Auto zero over range"}
+        self._averagingModes = ['None', 'Mean', 'Settle']
+        self.averaging = averaging
+        self._readSleep = 0.15
+        self.Navg = Navg
 
     @property
     def idn(self):
         """This device can't respond to an "IDN?" type request"""
         return None
 
+    @property
+    def range(self):
+        """Return the current range"""
+        return self._range
+
+    @range.setter
+    def range(self, range):
+        """Set the range"""
+        assert range in self._rranges, "HP436A: Tried to set invalid range"
+        self._range = range
+
+    @property
+    def mode(self):
+        """Return the current mode"""
+        return self._mode
+
+    @mode.setter
+    def mode(self, mode):
+        """Set the mode"""
+        assert mode in self._modes.keys(), "HP436A: Tried to set invalid mode"
+        self._mode = mode
+
+    @property
+    def averaging(self):
+        """Return the current averaging mode"""
+        return self._averaging
+
+    @averaging.setter
+    def averaging(self, averaging):
+        """Set the averaging mode"""
+        assert averaging in self._averagingModes, "HP436A: Tried to set invalid averaging mode"
+        self._averaging = averaging
 
     def getDataStr(self, range="9", mode="A", cal_factor="+", rate="V"):
         """Get data str from power meter using <range> <mode> and <rate>"""
@@ -71,7 +111,7 @@ class PowerMeter(Instrument.Instrument):
         #   I-M, range 1-5
         #
         # Convert to numerical range
-        self.range = self._ranges.index(dataStr[1])
+        self.returnedRange = self._ranges.index(dataStr[1])
 
 
         self.mode = self._modes[dataStr[2]]
@@ -122,12 +162,38 @@ class PowerMeter(Instrument.Instrument):
         data = self.unpackDataStr(dataStr)
         return data
 
+    def getPower(self):
+        """Return the power in the current mode, and using the current averaging
+        set up"""
+        if self._averaging == "Settle":
+            d1 = self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate)
+            time.sleep(self.readSleep)
+            d2 = self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate)
+            if ( abs((d1-d2)/(d1+d2)) < 0.05 ):
+                return ((d1+d2)*0.5)
+            else:
+                time.sleep(self.readSleep)
+                d3 = self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate)
+                if ( abs(d2-d3) < abs(d1-d3) ):
+                    return ((d2+d3)*0.5)
+                else:
+                    return ((d1+d3)*0.5)
+
+        elif self._averaging == "Mean":
+            data = []
+            for i in range(self.Navg):
+                data.append(self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate))
+                time.sleep(self.readSleep)
+            return statistics.mean(data)
+        else: # self._averaging == "None":
+            return self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate)
+
 if __name__ == "__main__":
     import visa
     rm = visa.ResourceManager()
-    res = rm.open_resource("GPIB::12")
-    pm = PowerMeter(res)
+    res = rm.open_resource("GPIB::13")
+    pm = PowerMeter(res, averaging=Settle)
 
     print("Power : {:g} {:s}".format(pm.getData(), pm.mode))
-    print("Range : {:d}".format(pm.range))
+    print("Range : {:d}".format(pm.returnedRange))
     print("Status: {:s}".format(pm.status))
