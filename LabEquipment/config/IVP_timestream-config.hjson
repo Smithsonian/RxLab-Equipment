@@ -1,0 +1,21 @@
+# IVP default configuration file
+# Assumes we don't know anything about the bias box, except that we are
+# using a unipolar to bipolar convertor
+{
+    # Uses default DAQ configuration
+    # Uses this IV configuration
+    "config-file":"IVP-default.hjson",
+    # Use analog power meter input
+    "power-meter": {
+        "channel":2,
+        "gain":1.0,
+        "offset":0.00
+    }
+    "settleTime":0.0, # Number of seconds to wait for bias to settle - set to zero because we aren't changing bias
+    "average":200, # Reduce averages for faster sampling
+    "rate":12000, # Lower scanning rate to allow for extra channel for power meter
+    "timestream":{
+        "sampleTime":0.01,  # time between samples
+        "streamLength":2000 # number of samples to take
+    }
+}
