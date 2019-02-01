@@ -19,7 +19,7 @@ class AgilentE8257D(object):
         self.idn = self.inst.query("*IDN?")
         if strict == True:
             if self.idn.split(",")[1] != " E8257D":
-                raise ValueError, "AgilentE8257D Module: Specified instrument is not an Agilent E8257D"
+                raise ValueError("AgilentE8257D Module: Specified instrument is not an Agilent E8257D")
 
     def getFreq(self):
         """Return the current frequency of the synth"""
