@@ -8,3 +8,4 @@ LabEquipment.egg-info
 /dist
 /build
 /archive
+*.log

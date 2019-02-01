@@ -31,7 +31,7 @@ class PowerMeter(Instrument.Instrument):
         self._statuses = {"P":"Data Valid", "Q":"Watts, under range", "R":"Over range", "S":"dB, under range", "T":"Auto zero under range, 1", "U":"Auto zero under range, 2-5", "V":"Auto zero over range"}
         self._averagingModes = ['None', 'Mean', 'Settle']
         self.averaging = averaging
-        self._readSleep = 0.15
+        self.readSleep = 0.15
         self.Navg = Navg
 
     @property
