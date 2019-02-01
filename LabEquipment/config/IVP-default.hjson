@@ -9,6 +9,9 @@
     "settleTime":0.01, # Number of seconds to wait for bias to settle
     "rate":12000, # Lower scanning rate to allow for extra channel for power meter
     "power-meter": {
+        # "address":"GPIB0::13::INST",
+        # "averaging":"Settle", # One of "None", "Settle" (take two or three samples then average closest two), or "Mean" (take Navg samples and average)
+        # "Navg":3, # Number of samples to average in "Mean" averaging mode
         "channel":2,
         "gain":1.0,
         "offset":0.00

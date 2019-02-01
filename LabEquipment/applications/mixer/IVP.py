@@ -70,6 +70,14 @@ class IVP(IV.IV):
             self.pm_address = self.config["power-meter"]["address"]
             if self.verbose:
                 print("GPIB IF power meter configuration found")
+            try:
+                self.pm_averaging = self.config["power-meter"]["averaging"]
+            except KeyError:
+                self.pm_averaging = None
+            try:
+                self.pm_Navg = self.config["power-meter"]["Navg"]
+            except KeyError:
+                self.pm_Navg = 3
         except KeyError:
             try:
                 self.pm_address = None
@@ -99,7 +107,7 @@ class IVP(IV.IV):
             self.rm = visa.ResourceManager()
             lr = self.rm.list_resources()
             if pm_address in lr:
-                self.pm = PM.PowerMeter(self.rm.open_resource(pm_address))
+                self.pm = PM.PowerMeter(self.rm.open_resource(pm_address), averaging=self.pm_averaging, Navg=self.pm_Navg)
                 self.pm_address = pm_address
                 if self.verbose:
                     print("Power Meter connected on {:}.\n".format(self.pm_address))
