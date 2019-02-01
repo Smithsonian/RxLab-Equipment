@@ -150,4 +150,4 @@ if __name__ == "__main__":
     # Run a sweep
     test.setLoadPosition(loadPos)
 
-    print("Load control bit set to {:}".format(loadPos)
+    print("Load control bit set to {:}".format(loadPos))
