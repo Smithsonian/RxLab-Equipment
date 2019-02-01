@@ -1,6 +1,6 @@
 from ..Instrument import Instrument
 class HMCT2240(Instrument.Instrument):
-    '''Class for communicating with an HMC-T2240 signal generator'''
+    """Class for communicating with an HMC-T2240 signal generator"""
 
     def __init__(self, resource, strict=False, idString="HMC-T2240"):
         """Create Signal Generator object from PyVisa resource.
@@ -23,8 +23,7 @@ class HMCT2240(Instrument.Instrument):
         self.write("OUTP OFF")
 
     def setFreq(self, freq):
-        """ Set frequency - range of 10MHz to 2GHz (2GHz is max for HP8508A vvm """
-        """ Freq must be in form "10000000" or "10e6" """
+        """ Set frequency - range of 10MHz to 2GHz (2GHz is max for HP8508A vvm) Freq must be in form "10000000" or "10e6" """
         self.write("FREQ "+str(freq))
 
     def getFreq(self):

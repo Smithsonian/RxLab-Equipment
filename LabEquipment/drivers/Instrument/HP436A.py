@@ -68,7 +68,7 @@ class PowerMeter(Instrument.Instrument):
         assert averaging in self._averagingModes, "HP436A: Tried to set invalid averaging mode"
         self._averaging = averaging
 
-    def getDataStr(self, range="9", mode="A", cal_factor="+", rate="V"):
+    def getDataStr(self, range="9", mode="A", calFactor="+", rate="V"):
         """Get data str from power meter using <range> <mode> and <rate>"""
         # Range is one of :
         #   1-5 : Most to least sensitive
@@ -91,7 +91,7 @@ class PowerMeter(Instrument.Instrument):
         #   R : Free-run at maximum rate
         #   V : Free-run with settling timeout
 
-        return self.resource.query("{}{}{}{}".format(range, mode, cal_factor, rate))
+        return self.resource.query("{}{}{}{}".format(range, mode, calFactor, rate))
 
     def unpackDataStr(self, dataStr):
         """Unpack the data string, returning the value in whatever mode we're in"""
@@ -133,7 +133,7 @@ class PowerMeter(Instrument.Instrument):
 
         return value
 
-    def getData(self, range="9", mode="A", cal_factor="+", rate="V"):
+    def getData(self, range="9", mode="A", calFactor="+", rate="V"):
         """Return the power as a float, and set the properties of the PowerMeter
         object to describe the status and what the measurement represents
 
@@ -158,7 +158,7 @@ class PowerMeter(Instrument.Instrument):
           R : Free-run at maximum rate
           V : Free-run with settling timeout
         """
-        dataStr = self.getDataStr(range, mode, cal_factor, rate)
+        dataStr = self.getDataStr(range, mode, calFactor, rate)
         data = self.unpackDataStr(dataStr)
         return data
 
@@ -166,14 +166,14 @@ class PowerMeter(Instrument.Instrument):
         """Return the power in the current mode, and using the current averaging
         set up"""
         if self._averaging == "Settle":
-            d1 = self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate)
+            d1 = self.getData(range=self.range, mode=self.mode, calFactor=self.calFactor, rate=self.rate)
             time.sleep(self.readSleep)
-            d2 = self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate)
+            d2 = self.getData(range=self.range, mode=self.mode, calFactor=self.calFactor, rate=self.rate)
             if ( abs((d1-d2)/(d1+d2)) < 0.05 ):
                 return ((d1+d2)*0.5)
             else:
                 time.sleep(self.readSleep)
-                d3 = self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate)
+                d3 = self.getData(range=self.range, mode=self.mode, calFactor=self.calFactor, rate=self.rate)
                 if ( abs(d2-d3) < abs(d1-d3) ):
                     return ((d2+d3)*0.5)
                 else:
@@ -182,16 +182,16 @@ class PowerMeter(Instrument.Instrument):
         elif self._averaging == "Mean":
             data = []
             for i in range(self.Navg):
-                data.append(self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate))
+                data.append(self.getData(range=self.range, mode=self.mode, calFactor=self.calFactor, rate=self.rate))
                 time.sleep(self.readSleep)
             return statistics.mean(data)
         else: # self._averaging == "None":
-            return self.getData(range=self.range, mode=self.mode, cal_factor=self.cal_factor, rate=self.rate)
+            return self.getData(range=self.range, mode=self.mode, calFactor=self.calFactor, rate=self.rate)
 
 if __name__ == "__main__":
     import visa
     rm = visa.ResourceManager()
-    res = rm.open_resource("GPIB::13")
+    res = rm.open_resource("GPIB0::13::INST")
     pm = PowerMeter(res, averaging=Settle)
 
     print("Power : {:g} {:s}".format(pm.getData(), pm.mode))
