@@ -140,7 +140,7 @@ class PowerMeter(Instrument.Instrument):
         self.returnedRange = self._ranges.index(dataStr[1])
 
 
-        self.mode = self._modes[dataStr[2]]
+        self.units = self._modes[dataStr[2]]
         # Mode is one of:
         #   A - Watts
         #   B - dB Relative
@@ -220,6 +220,6 @@ if __name__ == "__main__":
     res = rm.open_resource("GPIB0::13::INST")
     pm = PowerMeter(res, averaging=Settle)
 
-    print("Power : {:g} {:s}".format(pm.getData(), pm.mode))
+    print("Power : {:g} {:s}".format(pm.getData(), pm.units))
     print("Range : {:d}".format(pm.returnedRange))
     print("Status: {:s}".format(pm.status))

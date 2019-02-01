@@ -6,9 +6,9 @@ import string
 
 class Lakeshore(object):
     def __init__(self, InstAddr="GPIB::11", strict=False, idString="83630A"):
-    """Create Lakeshore Temperature Monitor object.
+        """Create Lakeshore Temperature Monitor object.
 
-    if InstAddr[0:3] == "COM": # We are using RS232 and need to set up the instrument more carefully
+        if InstAddr[0:3] == "COM": # We are using RS232 and need to set up the instrument more carefully
         self.inst = rm.open_resource(InstAddr, baud_rate=9600, data_bits=7, stop_bits=1, parity=visa.odd_parity, term_chars="\r\n", delay = 0.05)
 
         rm = pyvisa.ResourceManager()
