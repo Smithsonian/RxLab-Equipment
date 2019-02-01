@@ -344,9 +344,8 @@ class IVY(IVP.IVP):
             self.fig.savefig(filename)
 
         if self.fig2:
-            filename = filename.split(".")[:-1] + ["_Trx"]
-            filename.append("png")
-            filename = ".".join(filename)
+            filename = ["_".join(filename.split(".")[:-1] + ["Trx"])]
+            filename = ".".join(filename.append("png"))
             self.fig2.savefig(filename)
 
 if __name__ == "__main__":
