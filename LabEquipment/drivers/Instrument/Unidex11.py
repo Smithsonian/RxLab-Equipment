@@ -41,7 +41,7 @@ class Unidex11(object):
                 self.Uspeed = speed[0]
                 self.Vspeed = speed[1]
             else:
-                raise ValueError, "Incorrect number of elements in speed.  Must be 1 or 2 elements only."
+                raise ValueError("Incorrect number of elements in speed.  Must be 1 or 2 elements only.")
         except TypeError:
             self.Uspeed = speed
             self.Vspeed = speed

@@ -28,26 +28,25 @@ class Lakeshore(object):
 
 
         last_log=int(self.query("LOGNUM?"))
-        print "Last log was {:d}".format(last_log)
+        print("Last log was {:d}".format(last_log))
 
         f=open(outfilename,'w')
 
         for i in range(1,last_log+1):
-            print "fetching record {:d}".format(i)
+            print("fetching record {:d}".format(i))
             output_string=""
             log_str=self.query("LOGVIEW? {:d} 1".format(i))
             log_list=log_str.split(",")
             output_string += (log_list[0]+" "+log_list[1])
             for j in sensor_list:
-              log_str=self.query("LOGVIEW? {:d} {:d}".format(i,j))
-              log_list=log_str.split(",")
-              output_string +=(log_list[2]+" ")
-
+                log_str=self.query("LOGVIEW? {:d} {:d}".format(i,j))
+                log_list=log_str.split(",")
+                output_string +=(log_list[2]+" ")
 
             f.write(output_string+"\n")
-            print output_string
+            print(output_string)
         f.close
-        print "...done"
+        print("...done")
 
 
     def get_log(self):
