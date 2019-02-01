@@ -73,7 +73,7 @@ class Unidex11(object):
 
     def waitForStop(self):
         """Wait until the current move command finishes"""
-        while !(self.inst.stb & 64):
+        while not (self.inst.stb & 64):
             time.sleep(0.1)
         while (self.inst.stb & 64):
             time.sleep(0.1)
