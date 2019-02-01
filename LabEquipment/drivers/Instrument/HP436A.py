@@ -6,12 +6,12 @@ import time
 import statistics
 
 class PowerMeter(Instrument.Instrument):
-    def __init__(self, resource, range="9", mode="A", averaging="None", Navg=3):
+    def __init__(self, resource, range="9", mode="A", averaging="None", rate="V", calFactor="+", Navg=3):
         """Create Spectrum Analyzer object from a PyVISA resource:
         rm = pyvisa.ResourceManager()
-        pm = PowerMeter(rm.open_resource("GPIB::12"))
+        pm = PowerMeter(rm.open_resource("GPIB0::13::INST"))
 
-        InstAddr is the address of the spectrum analyzer - try "GPIB::12" by default"""
+        InstAddr is the address of the spectrum analyzer - try "GPIB0::13::INST" by default"""
         self.resource = resource
 
         # Set up the connection.
@@ -24,6 +24,10 @@ class PowerMeter(Instrument.Instrument):
         self.range = range
         self._modes = { "A":"Watts", "B":"dB Relative", "C": "dB Ref", "D":"dBm"}
         self.mode = mode
+        self._rates = { "H":"Hold", "T":"Trigger with settling time", "I":"Trigger immediately", "R":"Free-run at maximum rate", "V":"Free-run with settling timeout"}
+        self.rate = rate
+        self._calFactors = ["+", "-"]
+        self.calFactor = calFactor
         self._statuses = {"P":"Data Valid", "Q":"Watts, under range", "R":"Over range", "S":"dB, under range", "T":"Auto zero under range, 1", "U":"Auto zero under range, 2-5", "V":"Auto zero over range"}
         self._averagingModes = ['None', 'Mean', 'Settle']
         self.averaging = averaging
@@ -56,6 +60,28 @@ class PowerMeter(Instrument.Instrument):
         """Set the mode"""
         assert mode in self._modes.keys(), "HP436A: Tried to set invalid mode"
         self._mode = mode
+
+    @property
+    def rate(self):
+        """Return the current rate"""
+        return self._rate
+
+    @rate.setter
+    def rate(self, rate):
+        """Set the rate"""
+        assert rate in self._rates.keys(), "HP436A: Tried to set invalid rate"
+        self._rate = rate
+
+    @property
+    def calFactor(self):
+        """Return the current calFactor"""
+        return self._calFactor
+
+    @calFactor.setter
+    def calFactor(self, calFactor):
+        """Set the calFactor"""
+        assert calFactor in self._calFactors, "HP436A: Tried to set invalid calFactor"
+        self._calFactor = calFactor
 
     @property
     def averaging(self):
