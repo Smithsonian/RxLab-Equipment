@@ -8,7 +8,7 @@ import numpy as np
 
 def dBdeg_to_complex(dB, deg):
     """Return a complex NP array from a NP array in dB and deg"""
-    return np.pow(10, dB/20.)*np.exp(np.complex(0, 1)*np.deg2rad(deg))
+    return 10**(dB/20.)*np.exp(np.complex(0, 1)*np.deg2rad(deg))
 
 def loadVNA_1port(filename):
     """Loads 1 port VNA data from filename and returns a skrf.Network representing the data"""
