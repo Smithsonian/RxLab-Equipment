@@ -55,7 +55,7 @@ class IVP_timestream(IVP.IVP):
             print("IVP_timestream.__init__: Done setting configFile and config: Current config:")
             pprint.pprint(self.config)
 
-        self.columnHeaders = "Time (s)\tBias (mV)\tVoltage (mV)\tCurrent (mA)\tIF Power"
+        self.columnHeaders = "Time (s)\tVoltage (mV)\tCurrent (mA)\tIF Power"
         self.pm = None
 
         self.initPM()
@@ -69,15 +69,18 @@ class IVP_timestream(IVP.IVP):
         try:
             self.sampleTime = self.config["timestream"]["sampleTime"]
             self.streamLength = self.config["timestream"]["streamLength"]
+        except KeyError:
+            self.sampleTime = 0.01
+            self.streamLength = 100
 
     def prepSweep(self):
         self.SweepPts = np.arange(0, self.streamLength, 1)
 
         # Prepares for data collection
-        self.Vdata = np.empty_like(self.SweepPts)
-        self.Idata = np.empty_like(self.SweepPts)
-        self.Pdata = np.empty_like(self.SweepPts)
-        self.Tdata = np.empty_like(self.SweepPts)
+        self.Vdata = np.empty_like(self.SweepPts, dtype=np.float)
+        self.Idata = np.empty_like(self.Vdata)
+        self.Pdata = np.empty_like(self.Vdata)
+        self.Tdata = np.empty_like(self.Vdata)
 
 
     def runSweep(self):
@@ -93,10 +96,10 @@ class IVP_timestream(IVP.IVP):
             #self.setSweep(bias)
 
             #Collects data from scan
-            time = time.time() - time0
+            t = time.time() - time0
             data = self.getData()
 
-            self.Tdata[index] = time
+            self.Tdata[index] = t
             self.Vdata[index] = data[0]
             self.Idata[index] = data[1]
             if len(data) >= 3:
@@ -106,6 +109,10 @@ class IVP_timestream(IVP.IVP):
 
             if index%100 == 0 and self.verbose:
                 print("\t{:.3f}\t\t{:.3f}\t\t{:.3f}\t\t{:.3g}".format(self.Tdata[index], self.Vdata[index], self.Idata[index], self.Pdata[index]))
+
+    def endSweep(self):
+        """Do nothing because we didn't do anyting"""
+        pass
 
     def spreadsheet(self):
         if self.verbose:
@@ -125,13 +132,13 @@ class IVP_timestream(IVP.IVP):
     def plotIT(self):
         self.ax.plot(self.Tdata, self.Idata, 'r-')
         self.ax.set(ylabel="Current")
-        self.ax.set(title="Current Timestream")
+        self.ax.set(title="Current/Power Timestream")
 
     def plotPT(self):
         # Plot PV curve
         self.ax2.plot(self.Tdata, self.Pdata, 'b-')
         self.ax2.set(ylabel="Power")
-        self.ax2.set(title="Power Timestream")
+        #self.ax2.set(title="Power Timestream")
 
     def plot(self, ion=True):
         """Plot the acquired data from the sweep.
@@ -148,19 +155,25 @@ if __name__ == "__main__":
     #
     # Usage: python3 <file.dat> <min> <max> <step> <*use file>
 
-    test = IVP(verbose=True, vverbose=True)
+    if len(sys.argv) == 5 or len(sys.argv) == 2:
+        confFile = sys.argv.pop(1)
+    else:
+        confFile = "IVP_timestream-config.hjson"
+
+    test = IVP_timestream(configFile=confFile, verbose=True, vverbose=False)
 
     if len(sys.argv) >= 4:
-        if len(sys.argv) == 5:
-            test.readFile(sys.argv[4])
-            test.initDAQ()
         test.save_name = sys.argv[1]
         test.sampleTime = float(sys.argv[2])
         test.streamLength = int(sys.argv[3])
     else:
-        test.save_name = input("Output file name: ")
-        test.sampleTime = float(input("Time between samples (s):"))
-        test.streamLength = float(input("Number of samples: "))
+        try:
+            sweepConf = test.config["sweep"]
+        except KeyError:
+            test.save_name = input("Output file name: ")
+            test.sampleTime = float(input("Time between samples (s):"))
+            test.streamLength = float(input("Number of samples: "))
+
 
     # Run a sweep
     test.sweep()
@@ -175,7 +188,6 @@ if __name__ == "__main__":
             test.savefig()
     except SyntaxError:
         pass
-
 
     # Close down the IV object cleanly, releasing the DAQ and PM
     del test
