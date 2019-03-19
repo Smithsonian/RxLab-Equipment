@@ -24,6 +24,6 @@ def loadVNA_1port(filename):
     # Convert 1d s11 array to skrf required 3d array
     s11 = np.reshape(s11, (s11.shape[0], 1, 1))
 
-    net = rf.Network(f=freq.f, s=s11, z0=50, f_unit="GHz")
+    net = rf.Network(f=freq.f_scaled, s=s11, z0=50, f_unit="GHz")
 
     return net
