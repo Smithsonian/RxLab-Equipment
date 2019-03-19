@@ -17,7 +17,7 @@ def loadVNA_1port(filename):
     freq = rf.frequency.Frequency.from_f(data[:,0], unit="GHz")
 
     dB = data[:,1]
-    deg = data[:,2]
+    deg = -data[:,2]
 
     s11 = dBdeg_to_complex(dB, deg)
 
