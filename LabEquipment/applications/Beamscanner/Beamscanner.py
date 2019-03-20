@@ -15,9 +15,9 @@ import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
 import numpy.polynomial.polynomial as poly
 
-import HP8508A
-import HMCT2240
-import MSL
+import LabEquipment.drivers.Instrument.HP8508A as HP8508A
+import LabEquipment.drivers.Instrument.HMCT2240 as HMCT2240
+import LabEquipment.drivers.Instrument.MSL as MSL
 
 class Beamscanner:
     def __init__(self):
