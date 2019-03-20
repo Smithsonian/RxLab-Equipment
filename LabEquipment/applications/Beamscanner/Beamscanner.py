@@ -62,7 +62,7 @@ class Beamscanner:
         self.searchRes = float(lines[12].split("!")[0])
         self.velocity = float(lines[13].split("!")[0])
         self.accel = float(lines[14].split("!")[0])
-        
+
         self.setStep(self.Res)
 
 
@@ -109,7 +109,7 @@ class Beamscanner:
         # Sets MSL home positions to central position to synchronize between tests
         self.msl_x.center()
         self.msl_y.center()
-        
+
         # Sets MSL motion parameters
         self.msl_x.setAccel(self.accel)
         self.msl_x.setDecel(self.accel)
@@ -117,7 +117,7 @@ class Beamscanner:
         self.msl_y.setAccel(self.accel)
         self.msl_y.setDecel(self.accel)
         self.msl_y.setVelMax(self.velocity)
-        
+
     def setRange(self, Range):
         # Range of travel stage motion (50x50mm)
         self.pos_x_max = int((Range/2) * self.conv_factor) # 25 mm * 5000 microsteps per mm
@@ -129,8 +129,8 @@ class Beamscanner:
         # Sets step size for position increments
         # Converts resolution in mm to microsteps for MSL
         self.Step = int(res * self.conv_factor)
-        
-        
+
+
     def findMaxPos(self):
         # Finds the X and Y positions of maximum voltmeter amplitude
         # Function only used in "findCenter"
@@ -138,19 +138,19 @@ class Beamscanner:
         index = self.vvm_data.index(max_amp)
         self.pos_x_center = int(self.pos_data[index][0])
         self.pos_y_center = int(self.pos_data[index][1])
-    
-    
+
+
     def findCenter(self, minRes = 0.1):
         # Runs scan over area & finds maximum amplitude peak.
         # Begins at arbitrary position and decreases range and resolution with each iteration.
 
         print("\nFinding center...")
-        
+
         res = bs.searchRes
         Range = bs.searchRange
         self.pos_x_center = bs.searchCenter[0]
         self.pos_y_center = bs.searchCenter[1]
-        
+
         while res >= minRes:
             self.setRange(Range)
             self.setStep(res)
@@ -186,21 +186,21 @@ class Beamscanner:
         # Gets initial position
         self.pos_x = int(self.msl_x.getPos())
         self.pos_y = int(self.msl_y.getPos())
-        
+
         # Create numpy arrays to store the data
         x = np.arange(self.pos_x_min, self.pos_x_max+self.Step, self.Step, dtype=float)
         y = np.arange(self.pos_y_min, self.pos_y_max+self.Step, self.Step, dtype=float)
         self.xVals, self.yVals = np.meshgrid(x, y)
-        
+
         # reverse everyother line in self.xVals
         self.xVals[1::2,:] = self.xVals[1::2,::-1]
-        
+
         self.transVals = np.zeros_like(self.xVals, dtype=complex)
 
         # VVM ready to begin collecting data
         self.vvm.trigger()
 
-        
+
     def getTransmission(self):
         """Get the transmission from the VVM.  Loop if necessary to avoid
         one-off time out errors"""
@@ -221,31 +221,31 @@ class Beamscanner:
             except ValueError:
                 pass
         return trans
-        
-    
+
+
     def scan(self, res):
         """Scan over the meshgrids of the stored xVals and yVals, and record data
         in trans.
-        
+
         initScan will set up the xVals and yVals array as a regular raster scan grid.
         however, this methods will work with any scan pattern defined in those variables."""
-        
+
         for i, x in enumerate(self.xVals.ravel()):
             y = self.yVals.ravel()[i]
-            
+
             # Move to position
             self.msl_x.moveAbs(x*self.conv_factor)
             self.msl_y.moveAbs(y*self.conv_factor)
             self.msl_x.hold()
             self.msl_y.hold()
-            
+
             # Gets positions and transmissions from VVM and loops in case of error
             self.xVals.ravel()[i] = self.msl_x.getPos()
             self.yVals.ravel()[i] = self.msl_y.getPos()
             self.trans.ravel()[i] = self.getTransmission()
             print("    X: {:.3f}, Y: {:.3f}".format(self.xVals.ravel()[i]/self.conv_factor, self.xVals.ravel()[i]/self.conv_factor))
             print("    {:f} dB, {:f} deg".format(20*np.log10(transVals.ravel()[i]), np.degrees(np.angle(transVals.ravel()[i]))))
-            
+
     def endSG(self):
         # Turns off signal generator output
         self.RF.off()
@@ -272,7 +272,7 @@ class Beamscanner:
             if type(self.vvm_data[i]) == tuple:
                 amp_data.append(self.vvm_data[i][0])
                 phase_data.append(self.vvm_data[i][1])
-            elif type(vvm_data[i]) == str:
+            elif type(self.vvm_data[i]) == str:
                 amp_data.append(float(self.vvm_data[i].split(",")[0]))
                 phase_data.append(float(self.vvm_data[i].split(",")[1]))
 
