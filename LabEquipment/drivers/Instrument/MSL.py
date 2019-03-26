@@ -149,12 +149,12 @@ class MSL(Instrument.Instrument):
         """Find the limits of travel of the stage, using the built in limit
         switches"""
         # Run forward until we run into the limit switch
-        self.moveRel(1000000)
+        self.moveRel(10000000)
         self.hold()
         self.posLimit = self.getPos()
 
         # Step backward until we run into the limit switch
-        self.moveRel(-1000000)
+        self.moveRel(-10000000)
         self.hold()
         self.negLimit = self.getPos()
 
