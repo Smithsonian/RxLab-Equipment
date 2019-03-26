@@ -85,10 +85,10 @@ class MSL(Instrument.Instrument):
         if self.softLimits:
             if self.posLimit:
                 if self.posLimit < pos:
-                    raise ValueError("Requested position beyond positive range of motion of MSL {}".format(self.prefix[:-1]))
+                    raise ValueError("Requested position {:f} beyond positive range of motion of MSL {}".format(pos, self.prefix[:-1]))
             if self.negLimit:
                 if self.negLimit > pos:
-                    raise ValueError("Requested position beyond negative range of motion of MSL {}".format(self.prefix[:-1]))
+                    raise ValueError("Requested position {:f} beyond negative range of motion of MSL {}".format(pos, self.prefix[:-1]))
         self.write("MA {:d}".format(int(pos)))
 
     def moveRel(self, pos):
@@ -97,10 +97,10 @@ class MSL(Instrument.Instrument):
             currPos = self.getPos()
             if self.posLimit:
                 if self.posLimit < pos+currPos:
-                    raise ValueError("Requested position beyond positive range of motion of MSL {}".format(self.prefix[:-1]))
+                    raise ValueError("Requested position {:f} beyond positive range of motion of MSL {}".format(pos, self.prefix[:-1]))
             if self.negLimit:
                 if self.negLimit > pos+currPos:
-                    raise ValueError("Requested position beyond negative range of motion of MSL {}".format(self.prefix[:-1]))
+                    raise ValueError("Requested position {:f} beyond negative range of motion of MSL {}".format(pos, self.prefix[:-1]))
         self.write("MR {:d}".format(int(pos)))
 
     def setHome(self, pos):
