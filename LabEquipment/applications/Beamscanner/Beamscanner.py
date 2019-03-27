@@ -39,12 +39,12 @@ class Beamscanner:
         self.start_time = time.time()
         print("Starting...\n")
 
-    def readUSE(self, useFile="Beamscan.use"):
+    def readUSE(self, useFile=None):
         # If use file is entered, use that file instead of default.
-        if len(sys.argv) > 1:
-            useFile = sys.argv[1]
-        else:
+        if useFile == None:
             useFile = "Beamscan.use"
+
+
         print("USE file: ",useFile)
 
         # Reads USE file for parameters
@@ -52,54 +52,58 @@ class Beamscanner:
         lines = f.readlines()
         f.close()
 
-        self.save_name = lines[0].split("!")[0].strip()
+        # We need to know this first
         self.conv_factor = float(lines[9].split("!")[0])
+
+        self.save_name = lines[0].split("!")[0].strip()
         self.Range = float(lines[1].split("!")[0])*self.conv_factor
         self.Res = float(lines[2].split("!")[0])*self.conv_factor
         self.Average = int(lines[3].split("!")[0])
         self.Format = lines[4].split("!")[0].strip()
-        self.RFfreq = float(lines[5].split("!")[0])
-        self.LOfreq = float(lines[6].split("!")[0])
-        self.RFpow = float(lines[7].split("!")[0])
-        self.LOpow = float(lines[8].split("!")[0])
-        self.searchCenter = (float(lines[10].split("!")[0].split(",")[0])*self.conv_factor, float(lines[10].split("!")[0].split(",")[0])*self.conv_factor)
-        self.searchRange = float(lines[11].split("!")[0])*self.conv_factor
-        self.searchRes = float(lines[12].split("!")[0])*self.conv_factor
-        self.velocity = float(lines[13].split("!")[0])
-        self.accel = float(lines[14].split("!")[0])
+        self.Testfreq = float(lines[5].split("!")[0])
+        self.IFfreq = float(lines[6].split("!")[0])
+        self.RFharm = int(lines[7].split("!")[0])
+        self.RFfinalHarm = int(lines[8].split("!")[0])
+        self.LOharm = int(lines[9].split("!")[0])
+        self.RFpow = float(lines[10].split("!")[0])
+        self.LOpow = float(lines[11].split("!")[0])
+        self.searchCenter = (float(lines[13].split("!")[0].split(",")[0])*self.conv_factor, float(lines[13].split("!")[0].split(",")[0])*self.conv_factor)
+        self.searchRange = float(lines[14].split("!")[0])*self.conv_factor
+        self.searchRes = float(lines[15].split("!")[0])*self.conv_factor
+        self.velocity = float(lines[16].split("!")[0])
+        self.accel = float(lines[17].split("!")[0])
         self.pos_x_center = self.searchCenter[0]
         self.pos_y_center = self.searchCenter[1]
 
         self.setStep(self.Res)
-        
-        
-    #def calcFreqs(self):
-        #"""Calculate the frequencies for the RF and LO based on the harmonics
-        #and test frequency"""
-        #self.RFfreq = self.TestFreq / self.RFharm
-        #self.refFreq = self.RFfreq / self.RFfinalHarm
-        #self.multLOfreq = self.RFfreq + self.IFfreq
-        #self.LOfreq = self.multLOfreq / self.LOharm
-        
-        #if self.verbose:
-            #print("""
-#Calculated frequencies in system:
-    #RF Output Frequency : {:8.4f} GHz
-    #RF Harmonic         : {:d}
-    #RF Input Frequency  : {:8.4f} GHz
-    
-    #IF Frequency        : {:8.4f} MHz
-    
-    #LO Output Frequency : {:8.4f} GHz
-    #LO Harmonic         : {:d}
-    #LO Input Frequency  : {:8.4f} GHz
-    
-    #Final RF Multiplier : {:d}
-    #Ref Frequency       : {:8.4f} GHz
-    #Ref LO Frequency    : {:8.4f} GHz
-    #Ref IF Frequency    : {:8.4f} MHz
-#""".format(self.TestFreq/1e9, self.RFharm, self.RFfreq/1e9, self.IFfreq/1e6, self.multLOfreq/1e9, self.LOharm, self.LOfreq/1e9, self.RFfinalHarm, self.refFreq/1e9, self.multLOfreq/self.RFfinalHarm/1e9, self.IFfreq/self.RFfinalHarm/1e6))
+        self.calcFreqs()
 
+    def calcFreqs(self):
+        """Calculate the frequencies for the RF and LO based on the harmonics
+        and test frequency"""
+        self.RFfreq = self.Testfreq / self.RFharm
+        self.reffreq = self.Testfreq / self.RFfinalHarm
+        self.multLOfreq = self.Testfreq + self.IFfreq
+        self.LOfreq = self.multLOfreq / self.LOharm
+
+        if self.verbose:
+            print("""
+        Calculated frequencies in system:
+            RF Output Frequency : {:8.4f} GHz
+            RF Harmonic         : {:3d}
+            RF Input Frequency  : {:8.4f} GHz
+
+            IF Frequency        : {:8.4f} MHz
+
+            LO Output Frequency : {:8.4f} GHz
+            LO Harmonic         : {:3d}
+            LO Input Frequency  : {:8.4f} GHz
+
+            Final RF Multiplier : {:3d}
+            Ref Frequency       : {:8.4f} GHz
+            Ref LO Frequency    : {:8.4f} GHz
+            Ref IF Frequency    : {:8.4f} MHz
+        """.format(self.Testfreq/1e9, self.RFharm, self.RFfreq/1e9, self.IFfreq/1e6, self.multLOfreq/1e9, self.LOharm, self.LOfreq/1e9, self.RFfinalHarm, self.reffreq/1e9, self.multLOfreq/self.RFfinalHarm/1e9, self.IFfreq/self.RFfinalHarm/1e6))
 
     def initGPIB(self):
         """Initialize PyVisa and check it's working.
@@ -154,23 +158,23 @@ class Beamscanner:
         self.msl_y.setDecel(self.accel)
         self.msl_y.setVelMax(self.velocity)
 
-    
+
     def setRangeMM(self, Range):
         """Sets the range to Range mm.
         Converst to MSL steps before calling .setRange()"""
         self.Range(Range*self.conv_factor)
-    
+
     def setRange(self, Range):
         """Sets the range to Range steps"""
         self.pos_x_max = int(Range/2.0) + self.pos_x_center
         self.pos_y_max = int(Range/2.0) + self.pos_y_center
         self.pos_x_min = -int(Range/2.0) + self.pos_x_center
         self.pos_y_min = -int(Range/2.0) + self.pos_y_center
-        
+
     def setStep(self, res):
         """Sets step size for position increments in MSL steps"""
         self.Step = res
-        
+
 
     def setStepMM(self, res):
         """Sets step size for position increments
@@ -187,7 +191,7 @@ class Beamscanner:
 
     def findCenterMM(self, minRes=0.1):
         """Runs a scan over the searchArea & finds maximum amplitude peak.
-        
+
         Decreases range and resolution with each iteration until minRes in mm is reached"""
         self.findCenter(minRes=minRes*self.conv_factor)
 
@@ -195,9 +199,9 @@ class Beamscanner:
     def findCenter(self, minRes=500):
         """Runs scan over area & finds maximum amplitude peak.
         Begins at arbitrary position and decreases range and resolution with each iteration.
-        
+
         Takes a minimum resolution to search with in steps."""
-        
+
         print("\nFinding center...")
 
         res = self.searchRes
@@ -237,14 +241,14 @@ class Beamscanner:
     def initScan(self, Range=None):
         if Range==None:
             Range = self.Range
-                
+
         # Get range parameters for scan
         self.setRange(Range)
-        
+
         # Gets initial position
         self.pos_x = int(self.msl_x.getPos())
         self.pos_y = int(self.msl_y.getPos())
-        
+
         # Moves to minimum position in range to begin scan
         self.msl_x.moveAbs(self.pos_x_min)
         self.msl_y.moveAbs(self.pos_y_min)
@@ -255,7 +259,7 @@ class Beamscanner:
         x = np.arange(self.pos_x_min, self.pos_x_max+self.Step, self.Step, dtype=float)
         y = np.arange(self.pos_y_min, self.pos_y_max+self.Step, self.Step, dtype=float)
         self.xVals, self.yVals = np.meshgrid(x, y)
-        
+
 
         # reverse every other line in self.xVals
         self.xVals[1::2,:] = self.xVals[1::2,::-1]
@@ -300,7 +304,7 @@ class Beamscanner:
         for i, x in enumerate(self.xVals.ravel()):
             k = i
             y = self.yVals.ravel()[k]
-            
+
             if self.verbose:
                 print("Moving to: X: {:.1f}, Y:{:.1f}".format(x, y))
             # Move to position
@@ -329,28 +333,28 @@ class Beamscanner:
         y_data = self.yVals/self.conv_factor
         trans_data = self.trans
         time_data = self.time
-        
+
         if self.scan_type == "raster":
             # reverse every other line in self.xVals
             x_data[1::2,:] = x_data[1::2,::-1]
             y_data[1::2,:] = y_data[1::2,::-1]
             trans_data[1::2,:] = trans_data[1::2,::-1]
             time_data[1::2,:] = time_data[1::2,::-1]
-        
+
         outdata = np.array((x_data.ravel(), y_data.ravel(), trans_data.ravel().real, trans_data.ravel().imag, time_data.ravel()), dtype='float')
-        
+
         np.savetxt(self.save_name, outdata.transpose(), delimiter=", ")
-        
-        
+
+
     def contour_plot_dB(self):
         """Plot a contour plot in dB of the beam pattern"""
 
         xi = np.linspace(self.pos_x_min/self.conv_factor, self.pos_x_max/self.conv_factor, 1000)
         yi = np.linspace(self.pos_y_min/self.conv_factor, self.pos_y_max/self.conv_factor, 1000)
         xi, yi = np.meshgrid(xi, yi)
-        
+
         pts = np.array((self.xVals.ravel(), self.yVals.ravel())).transpose()
-        
+
         zi = griddata(pts/self.conv_factor, 20*np.log10(np.abs(self.trans.ravel())), (xi, yi), method="linear")
 
         CS = plt.contourf(xi, yi, zi)
@@ -365,7 +369,7 @@ class Beamscanner:
         plt.savefig(self.save_name.split(".")[0] + "dB_cntr.png")
         plt.show()
 
-        
+
 
     def contour_plot_deg(self):
         """Plot a contour plot in dB of the beam pattern"""
@@ -373,9 +377,9 @@ class Beamscanner:
         xi = np.linspace(self.pos_x_min/self.conv_factor, self.pos_x_max/self.conv_factor, 1000)
         yi = np.linspace(self.pos_y_min/self.conv_factor, self.pos_y_max/self.conv_factor, 1000)
         xi, yi = np.meshgrid(xi, yi)
-        
+
         pts = np.array((self.xVals.ravel(), self.yVals.ravel())).transpose()
-        
+
         zi = griddata(pts/self.conv_factor, np.deg2rad(np.angle(self.trans.ravel())), (xi, yi), method="linear")
 
         CS = plt.contourf(xi, yi, zi)
@@ -389,7 +393,7 @@ class Beamscanner:
         plt.title("Phase vs. Position")
         plt.savefig(self.save_name.split(".")[0] + "deg_cntr.png")
         plt.show()
-        
+
     def time_plot(self, file_name):
         # Makes time vs amplitude & phase plot given beamscanner data format, not spreadsheet data format
         amp_data = []
@@ -529,7 +533,7 @@ if __name__ == "__main__":
     bs = Beamscanner()
     bs.initTime()
     bs.readUSE()
-    
+
     bs.verbose = False
     bs.plotCenter = False
     # Disable finding center for testing speed
@@ -546,7 +550,7 @@ if __name__ == "__main__":
     # Initializes instruments
     bs.initVVM()
     bs.initSG()
-    
+
 
     bs.initMSL()
 
