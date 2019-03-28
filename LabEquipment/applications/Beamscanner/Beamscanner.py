@@ -53,7 +53,7 @@ class Beamscanner:
         f.close()
 
         # We need to know this first
-        self.conv_factor = float(lines[9].split("!")[0])
+        self.conv_factor = float(lines[12].split("!")[0])
 
         self.save_name = lines[0].split("!")[0].strip()
         self.Range = float(lines[1].split("!")[0])*self.conv_factor
@@ -380,7 +380,7 @@ class Beamscanner:
 
         pts = np.array((self.xVals.ravel(), self.yVals.ravel())).transpose()
 
-        zi = griddata(pts/self.conv_factor, np.deg2rad(np.angle(self.trans.ravel())), (xi, yi), method="linear")
+        zi = griddata(pts/self.conv_factor, np.rad2deg(np.angle(self.trans.ravel())), (xi, yi), method="linear")
 
         CS = plt.contourf(xi, yi, zi)
         CL = plt.contour(xi, yi, zi, colors='k')
@@ -534,8 +534,8 @@ if __name__ == "__main__":
     bs.initTime()
     bs.readUSE()
 
-    bs.verbose = False
-    bs.plotCenter = False
+    bs.verbose = True
+    bs.plotCenter = True
     # Disable finding center for testing speed
     #bs.centerBeforeScan = False
 
