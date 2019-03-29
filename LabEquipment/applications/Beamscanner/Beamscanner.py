@@ -59,7 +59,7 @@ class Beamscanner:
         self.Range = float(lines[1].split("!")[0])*self.conv_factor
         self.Res = float(lines[2].split("!")[0])*self.conv_factor
         self.Average = int(lines[3].split("!")[0])
-        self.CalInterval = int(lines[4]).split("!")[0])
+        self.CalInterval = int(lines[4].split("!")[0])
         self.Format = lines[5].split("!")[0].strip()
         self.Testfreq = float(lines[6].split("!")[0])
         self.IFfreq = float(lines[7].split("!")[0])
