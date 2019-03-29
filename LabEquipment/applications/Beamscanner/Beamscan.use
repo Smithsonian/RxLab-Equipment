@@ -2,6 +2,7 @@ wSMA240_100mm_225GHz.csv !Output file name of scan data
 75              !Scan Range (ex: 50 --> 50x50mm)
 0.5             !Scan Resolution [mm]
 5               !Averaging
+150             !Calibration interval - number of points between calibrations.  Set to zero or -ve to disable
 POL             !Format to read values in
 225000000000    !Test Frequency in Hz
 450000000       !IF Frequency in Hz

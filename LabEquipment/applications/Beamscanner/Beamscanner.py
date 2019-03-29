@@ -53,25 +53,26 @@ class Beamscanner:
         f.close()
 
         # We need to know this first
-        self.conv_factor = float(lines[12].split("!")[0])
+        self.conv_factor = float(lines[13].split("!")[0])
 
         self.save_name = lines[0].split("!")[0].strip()
         self.Range = float(lines[1].split("!")[0])*self.conv_factor
         self.Res = float(lines[2].split("!")[0])*self.conv_factor
         self.Average = int(lines[3].split("!")[0])
-        self.Format = lines[4].split("!")[0].strip()
-        self.Testfreq = float(lines[5].split("!")[0])
-        self.IFfreq = float(lines[6].split("!")[0])
-        self.RFharm = int(lines[7].split("!")[0])
-        self.RFfinalHarm = int(lines[8].split("!")[0])
-        self.LOharm = int(lines[9].split("!")[0])
-        self.RFpow = float(lines[10].split("!")[0])
-        self.LOpow = float(lines[11].split("!")[0])
-        self.searchCenter = (float(lines[13].split("!")[0].split(",")[0])*self.conv_factor, float(lines[13].split("!")[0].split(",")[0])*self.conv_factor)
-        self.searchRange = float(lines[14].split("!")[0])*self.conv_factor
-        self.searchRes = float(lines[15].split("!")[0])*self.conv_factor
-        self.velocity = float(lines[16].split("!")[0])
-        self.accel = float(lines[17].split("!")[0])
+        self.CalInterval = int(lines[4]).split("!")[0])
+        self.Format = lines[5].split("!")[0].strip()
+        self.Testfreq = float(lines[6].split("!")[0])
+        self.IFfreq = float(lines[7].split("!")[0])
+        self.RFharm = int(lines[8].split("!")[0])
+        self.RFfinalHarm = int(lines[9].split("!")[0])
+        self.LOharm = int(lines[10].split("!")[0])
+        self.RFpow = float(lines[11].split("!")[0])
+        self.LOpow = float(lines[12].split("!")[0])
+        self.searchCenter = (float(lines[14].split("!")[0].split(",")[0])*self.conv_factor, float(lines[14].split("!")[0].split(",")[0])*self.conv_factor)
+        self.searchRange = float(lines[15].split("!")[0])*self.conv_factor
+        self.searchRes = float(lines[16].split("!")[0])*self.conv_factor
+        self.velocity = float(lines[17].split("!")[0])
+        self.accel = float(lines[18].split("!")[0])
         self.pos_x_center = self.searchCenter[0]
         self.pos_y_center = self.searchCenter[1]
 
@@ -215,7 +216,7 @@ class Beamscanner:
 
             self.moveToCenter()
             self.initScan(Range)
-            self.scan()
+            self.scan(calibrate=False)
             self.findMaxPos()
 
             Range = Range / 5
@@ -266,6 +267,7 @@ class Beamscanner:
 
         self.time = np.zeros_like(self.xVals, dtype=float)
         self.trans = np.zeros_like(self.xVals, dtype=complex)
+        self.calVals = np.zeros_like(self.trans, dtype=complex)
 
         # VVM ready to begin collecting data
         self.vvm.trigger()
@@ -293,17 +295,30 @@ class Beamscanner:
         return trans
 
 
-    def scan(self):
+    def scan(self, calibrate=True):
         """Scan over the meshgrids of the stored xVals and yVals, and record data
         in trans.
 
         initScan will set up the xVals and yVals array as a regular raster scan grid.
-        however, this methods will work with any scan pattern defined in those variables."""
+        however, this methods will work with any scan pattern defined in those variables.
+
+        If calibrate is True, the transmission at pos_x_center, pos_y_center will be
+        recorded every self.calInterval points and stored in self.calVals"""
         self.initTime()
+
+        if self.CalInterval <= 0:
+            calibrate = False:
+
+        lastCalValue = complex(0.0, 0.0)
 
         for i, x in enumerate(self.xVals.ravel()):
             k = i
             y = self.yVals.ravel()[k]
+
+            if calibrate = True:
+                if k % self.CalInterval == 0:
+                    self.moveToCenter()
+                    lastCalValue = self.getTransmission()
 
             if self.verbose:
                 print("Moving to: X: {:.1f}, Y:{:.1f}".format(x, y))
@@ -317,6 +332,7 @@ class Beamscanner:
             self.xVals.ravel()[k] = self.msl_x.getPos()
             self.yVals.ravel()[k] = self.msl_y.getPos()
             self.trans.ravel()[k] = self.getTransmission()
+            self.calVals.ravel()[k] = lastCalValue
             self.time.ravel()[k] = time.time() - self.start_time
             if self.verbose or (i % 10) == 0:
                 print("    k: {:d}  X: {:.3f}, Y: {:.3f}, {:f} dB, {:f} deg".format(k, self.xVals.ravel()[k]/self.conv_factor, self.yVals.ravel()[k]/self.conv_factor, 20*np.log10(np.abs(self.trans.ravel()[k])), np.degrees(np.angle(self.trans.ravel()[k]))))
@@ -332,6 +348,7 @@ class Beamscanner:
         x_data = self.xVals/self.conv_factor
         y_data = self.yVals/self.conv_factor
         trans_data = self.trans
+        cal_data = self.calVals
         time_data = self.time
 
         if self.scan_type == "raster":
@@ -339,9 +356,10 @@ class Beamscanner:
             x_data[1::2,:] = x_data[1::2,::-1]
             y_data[1::2,:] = y_data[1::2,::-1]
             trans_data[1::2,:] = trans_data[1::2,::-1]
+            cal_data[1::2,:] = cal_data[1::2,::-1]
             time_data[1::2,:] = time_data[1::2,::-1]
 
-        outdata = np.array((x_data.ravel(), y_data.ravel(), trans_data.ravel().real, trans_data.ravel().imag, time_data.ravel()), dtype='float')
+        outdata = np.array((x_data.ravel(), y_data.ravel(), trans_data.ravel().real, trans_data.ravel().imag, cal_data.ravel().real, cal_data.ravel().imag, time_data.ravel()), dtype='float')
 
         np.savetxt(self.save_name, outdata.transpose(), delimiter=", ")
 
@@ -368,8 +386,6 @@ class Beamscanner:
         plt.title("Amplitude vs. Position")
         plt.savefig(self.save_name.split(".")[0] + "dB_cntr.png")
         plt.show()
-
-
 
     def contour_plot_deg(self):
         """Plot a contour plot in dB of the beam pattern"""
