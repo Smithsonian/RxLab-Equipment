@@ -307,7 +307,7 @@ class Beamscanner:
         self.initTime()
 
         if self.CalInterval <= 0:
-            calibrate = False:
+            calibrate = False
 
         lastCalValue = complex(0.0, 0.0)
 
