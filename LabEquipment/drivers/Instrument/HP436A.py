@@ -91,6 +91,8 @@ class PowerMeter(Instrument.Instrument):
     @averaging.setter
     def averaging(self, averaging):
         """Set the averaging mode"""
+        if averaging == None:
+            averaging = "None"
         assert averaging in self._averagingModes, "HP436A: Tried to set invalid averaging mode"
         self._averaging = averaging
 
