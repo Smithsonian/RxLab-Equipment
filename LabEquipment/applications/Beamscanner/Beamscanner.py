@@ -118,7 +118,7 @@ class Beamscanner:
         https://github.com/pyvisa/pyvisa/issues/212
         """
         # Lists available resources
-        rm = visa.ResourceManager('@py')
+        rm = visa.ResourceManager()
         try:
             lr = rm.list_resources()
         except ValueError:
@@ -315,7 +315,7 @@ class Beamscanner:
             k = i
             y = self.yVals.ravel()[k]
 
-            if calibrate = True:
+            if calibrate:
                 if k % self.CalInterval == 0:
                     self.moveToCenter()
                     lastCalValue = self.getTransmission()
@@ -560,8 +560,9 @@ if __name__ == "__main__":
     bs.vvm = HP8508A.HP8508A(rm.open_resource("GPIB0::8::INSTR"))
     bs.RF = HMCT2240.HMCT2240(rm.open_resource("GPIB0::30::INSTR"))
     bs.LO = HP83630A.HP83630A(rm.open_resource("GPIB0::19::INSTR"))
-    bs.msl_x = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0"), partyName="X")
-    bs.msl_y = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0"), partyName="Y")
+    # For WIndows
+    bs.msl_x = MSL.MSL(rm.open_resource("ASRL4::INSTR", baud_rate=9600, data_bits=8, parity=visa.constants.Parity.none, stop_bits=visa.constants.StopBits.one, flow_control=0), partyName="X")
+    bs.msl_y = MSL.MSL(rm.open_resource("ASRL4::INSTR", baud_rate=9600, data_bits=8, parity=visa.constants.Parity.none, stop_bits=visa.constants.StopBits.one, flow_control=0), partyName="Y")
 
     # Initializes instruments
     bs.initVVM()
