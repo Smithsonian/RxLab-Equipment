@@ -130,14 +130,14 @@ class IVP_timestream(IVP.IVP):
         out.close()
 
     def plotIT(self):
-        self.ax.plot(self.Tdata, self.Idata, 'r-')
+        self.ax.plot(self.Tdata, self.Idata, 'r-', label="Current")
         self.ax.set(ylabel="Current")
         self.ax.set(title="Current/Power Timestream")
 
     def plotPT(self):
         # Plot PV curve
-        self.ax2.plot(self.Tdata, self.Pdata, 'b-')
-        self.ax2.set(ylabel="Power")
+        self.ax2.plot(self.Tdata, self.Pdata, 'b-', label="IF Power")
+        self.ax2.set(ylabel="IF Power")
         #self.ax2.set(title="Power Timestream")
 
     def plot(self, ion=True):
@@ -147,6 +147,7 @@ class IVP_timestream(IVP.IVP):
         self.plotIT()
         self.ax2 = self.ax.twinx()
         self.plotPT()
+        plt.legend()
         plt.show()
 
 if __name__ == "__main__":
