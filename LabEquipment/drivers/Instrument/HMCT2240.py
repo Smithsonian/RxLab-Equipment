@@ -1,4 +1,5 @@
 from ..Instrument import Instrument
+
 class HMCT2240(Instrument.Instrument):
     """Class for communicating with an HMC-T2240 signal generator"""
 
