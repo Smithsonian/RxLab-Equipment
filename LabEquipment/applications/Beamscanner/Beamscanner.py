@@ -106,7 +106,7 @@ class Beamscanner:
             Ref IF Frequency    : {:8.4f} MHz
         """.format(self.Testfreq/1e9, self.RFharm, self.RFfreq/1e9, self.IFfreq/1e6, self.multLOfreq/1e9, self.LOharm, self.LOfreq/1e9, self.RFfinalHarm, self.reffreq/1e9, self.multLOfreq/self.RFfinalHarm/1e9, self.IFfreq/self.RFfinalHarm/1e6))
 
-    def initGPIB(self):
+    def initGPIB(self, backend="@py"):
         """Initialize PyVisa and check it's working.
 
         "no langid" errors are likely a permissions issue - make sure the current user
@@ -118,7 +118,7 @@ class Beamscanner:
         https://github.com/pyvisa/pyvisa/issues/212
         """
         # Lists available resources
-        rm = visa.ResourceManager()
+        rm = visa.ResourceManager(backend)
         try:
             lr = rm.list_resources()
         except ValueError:
@@ -309,14 +309,18 @@ class Beamscanner:
         if self.CalInterval <= 0:
             calibrate = False
 
-        lastCalValue = complex(0.0, 0.0)
+        lastCalValue = complex(0.,0.)
+
+        if calibrate:
+            self.moveToCenter()
+            lastCalValue = self.getTransmission()
 
         for i, x in enumerate(self.xVals.ravel()):
             k = i
             y = self.yVals.ravel()[k]
 
             if calibrate:
-                if k % self.CalInterval == 0:
+                if abs(x-self.pos_x_center) < self.Step:
                     self.moveToCenter()
                     lastCalValue = self.getTransmission()
 
@@ -550,10 +554,10 @@ if __name__ == "__main__":
     bs.initTime()
     bs.readUSE()
 
-    bs.verbose = True
-    bs.plotCenter = True
+    bs.verbose = False
+    bs.plotCenter = False
     # Disable finding center for testing speed
-    #bs.centerBeforeScan = False
+    bs.centerBeforeScan = False
 
     # Establishes instrument communication
     rm = bs.initGPIB()
@@ -565,8 +569,8 @@ if __name__ == "__main__":
     bs.msl_y = MSL.MSL(rm.open_resource("ASRL4::INSTR", baud_rate=9600, data_bits=8, parity=visa.constants.Parity.none, stop_bits=visa.constants.StopBits.one, flow_control=0), partyName="Y")
 
     # Initializes instruments
-    bs.initVVM()
     bs.initSG()
+    bs.initVVM()
 
 
     bs.initMSL()
@@ -602,5 +606,10 @@ if __name__ == "__main__":
 #    bs.y_plot(bs.save_name)
     # Plots amplitude and phase vs. X position for slice at center of beam
 #    bs.x_plot(bs.save_name)
+
+    print("Deleting Beamscanner object")
+    del bs
+    print("Deleting Visa Resource Manager object")
+    del rm
 
     print("\nEnd.")
