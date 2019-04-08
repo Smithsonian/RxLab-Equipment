@@ -9,10 +9,10 @@ POL             !Format to read values in
 9               !Source Multiplication
 3               !Multiplication after Reference (also Ref IF multiplier)
 12              !LO Multiplication
-1               !RF Power in dBm
+0               !RF Power in dBm
 20              !LO Power in dBm
 5000            !Conversion factor for Linear Slides (default: 5000 microsteps/mm)
-0, 0            !Initial center to use to search for beam center
+-7.4, 10.4            !Initial center to use to search for beam centernf  and for center of scan  
 50              !Initial range to use to search for beam center
 5               !Initial resolution to use to search for beam center
 10000           !Max velocity for MSL motion

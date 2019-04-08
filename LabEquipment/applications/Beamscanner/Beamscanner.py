@@ -68,7 +68,7 @@ class Beamscanner:
         self.LOharm = int(lines[10].split("!")[0])
         self.RFpow = float(lines[11].split("!")[0])
         self.LOpow = float(lines[12].split("!")[0])
-        self.searchCenter = (float(lines[14].split("!")[0].split(",")[0])*self.conv_factor, float(lines[14].split("!")[0].split(",")[0])*self.conv_factor)
+        self.searchCenter = (float(lines[14].split("!")[0].split(",")[0])*self.conv_factor, float(lines[14].split("!")[0].split(",")[1])*self.conv_factor)
         self.searchRange = float(lines[15].split("!")[0])*self.conv_factor
         self.searchRes = float(lines[16].split("!")[0])*self.conv_factor
         self.velocity = float(lines[17].split("!")[0])

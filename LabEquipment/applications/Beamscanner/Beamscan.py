@@ -17,7 +17,7 @@ bs.readUSE()
 
 
 bs.verbose = False
-bs.plotCenter = False
+bs.plotCenter = True
 bs.centerBeforeScan = False
 
 # Establishes instrument communication
@@ -62,8 +62,7 @@ else: # cmd == None or Center
         bs.moveToCenter()
     else:
         print("Preparing for scan ...")
-        if bs.centerBeforeScan:
-            bs.findCenterMM()
+
         bs.initScan(bs.Range)
         # Scanning
         print("\nCollecting data...")
