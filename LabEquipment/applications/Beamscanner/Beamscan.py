@@ -36,8 +36,8 @@ else:
     cmd = None
 
 if cmd == "Move":
-    x = float(sys.argv[2])/bs.conv_factor
-    y = float(sys.argv[3])/bs.conv_factor
+    x = float(sys.argv[2])*bs.conv_factor
+    y = float(sys.argv[3])*bs.conv_factor
     bs.centerBeforeScan = False
     bs.initMSL()
     bs.msl_x.moveAbs(x)
