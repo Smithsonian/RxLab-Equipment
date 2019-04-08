@@ -18,7 +18,7 @@ bs.readUSE()
 
 bs.verbose = False
 bs.plotCenter = False
-bs.centerBeforeScan = True
+bs.centerBeforeScan = False
 
 # Establishes instrument communication
 rm = bs.initGPIB(backend="@ni")

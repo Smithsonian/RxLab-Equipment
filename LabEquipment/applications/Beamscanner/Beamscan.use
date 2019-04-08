@@ -5,7 +5,7 @@ wSMA240_75mm_225GHz.csv !Output file name of scan data
 150             !Calibration interval - number of points between calibrations.  Set to zero or -ve to disable
 POL             !Format to read values in
 225000000000    !Test Frequency in Hz
-450000000       !IF Frequency in Hz
+120000000       !IF Frequency in Hz
 9               !Source Multiplication
 3               !Multiplication after Reference (also Ref IF multiplier)
 12              !LO Multiplication
