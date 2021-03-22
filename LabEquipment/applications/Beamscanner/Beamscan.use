@@ -1,17 +1,20 @@
-wSMA240_75mm_225GHz.csv !Output file name of scan data
+wSMA345_49mm_350GHz.csv !Output file name of scan data
+50              !Range
+0.5             !Resolution
 5               !Averaging
 150             !Calibration interval - number of points between calibrations.  Set to zero or -ve to disable
 POL             !Format to read values in
-225000000000    !Test Frequency in Hz
-120000000       !IF Frequency in Hz
-9               !Source Multiplication
-3               !Multiplication after Reference (also Ref IF multiplier)
-12              !LO Multiplication
+345.0           !Test Frequency in GHz
+20.0            !IF Frequency in MHz
+9               !RF harmonic
+1               !RF final multiplier
+20              !LO harmonic
 0               !RF Power in dBm
-20              !LO Power in dBm
+18.2            !LO Power in dBm
 5000            !Conversion factor for Linear Slides (default: 5000 microsteps/mm)
--7.4, 10.4            !Initial center to use to search for beam centernf  and for center of scan  
+9.1, 19.1       !Initial center to use to search for beam centernf  and for center of scan  
 50              !Initial range to use to search for beam center
 5               !Initial resolution to use to search for beam center
+0.2		!Minimum resolution to use when searching for beam center	
 10000           !Max velocity for MSL motion
 500000          !Max acceleration for MSL motion

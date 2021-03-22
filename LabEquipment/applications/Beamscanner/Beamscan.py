@@ -1,7 +1,8 @@
-import visa
+import pyvisa as visa
 import os
 import time
 import sys
+import numpy as np
 
 import LabEquipment.drivers.Instrument.HP8508A as HP8508A
 import LabEquipment.drivers.Instrument.HP83630A as HP83630A
@@ -12,32 +13,39 @@ import LabEquipment.applications.Beamscanner.Beamscanner as Beamscanner
 # Begin
 bs = Beamscanner.Beamscanner()
 bs.initTime()
-bs.readUSE()
 
+cmd=None
+use=None
+# Read command line arguments
+if len(sys.argv[1].split(".")) > 1:
+    if sys.argv[1].split(".")[1] == "use":
+        use = sys.argv.pop(1)
 
+print(sys.argv)
+
+if len(sys.argv) > 1:
+    cmd = sys.argv[1]
+
+bs.readUSE(useFile=use)
+
+bs.printUSE()
 
 bs.verbose = False
 bs.plotCenter = True
 bs.centerBeforeScan = False
 
 # Establishes instrument communication
-rm = bs.initGPIB(backend="@ni")
+rm = bs.initGPIB(backend="@py")
 bs.vvm = HP8508A.HP8508A(rm.open_resource("GPIB0::8::INSTR"))
 bs.RF = HMCT2240.HMCT2240(rm.open_resource("GPIB0::30::INSTR"))
 bs.LO = HP83630A.HP83630A(rm.open_resource("GPIB0::19::INSTR"))
 # For WIndows
-bs.msl_x = MSL.MSL(rm.open_resource("ASRL4::INSTR", baud_rate=9600, data_bits=8, parity=visa.constants.Parity.none, stop_bits=visa.constants.StopBits.one, flow_control=0), partyName="X")
-bs.msl_y = MSL.MSL(rm.open_resource("ASRL4::INSTR", baud_rate=9600, data_bits=8, parity=visa.constants.Parity.none, stop_bits=visa.constants.StopBits.one, flow_control=0), partyName="Y")
-
-# Read command line arguments
-if len(sys.argv) > 1:
-    cmd = sys.argv[1]
-else:
-    cmd = None
+bs.msl_x = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0::INSTR"), partyName="X")
+bs.msl_y = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0::INSTR"), partyName="Y")
 
 if cmd == "Move":
-    x = float(sys.argv[2])*bs.conv_factor
-    y = float(sys.argv[3])*bs.conv_factor
+    x = float(sys.argv[3])*bs.conv_factor
+    y = float(sys.argv[4])*bs.conv_factor
     bs.centerBeforeScan = False
     bs.initMSL()
     bs.msl_x.moveAbs(x)
@@ -49,6 +57,10 @@ elif cmd == "SetFreqs":
     bs.calcFreqs()
     bs.initSG()
     bs.initVVM()
+    trans = bs.getTransmission()
+    print("VVM transmission: {:.2f} dB, {:.2f} deg".format(20*np.log10(np.abs(trans)), np.rad2deg(np.angle(trans))))
+    pows = bs.getPowers()
+    print("VVM powers: A(ref) {:.2f} dBm, B {:.2f} dBm".format(pows[0], pows[1]))
 
 else: # cmd == None or Center
     # Initializes all instruments
@@ -58,6 +70,8 @@ else: # cmd == None or Center
     bs.initMSL()
 
     if cmd == "Center":
+        #bs._debug = True
+        bs.centerBeforeScan = True
         bs.findCenterMM()
         bs.moveToCenter()
     else:
@@ -75,15 +89,9 @@ else: # cmd == None or Center
         # Writing to spread sheet
         bs.spreadsheet()
 
-        #   print("Plotting data ...")
-        # Plots position vs. amplitude contour plot
-        #   bs.contour_plot(bs.save_name)
-        # Plots amplitude and phase vs. time
-        #    bs.time_plot(bs.save_name)
-        # Plots amplitude and phase vs. y position for slice at center of beam
-        #    bs.y_plot(bs.save_name)
-        # Plots amplitude and phase vs. X position for slice at center of beam
-        #    bs.x_plot(bs.save_name)
+        print("Plotting data ...")
+        bs.contour_plot_dB()
+        bs.contour_plot_deg()
 
 del bs
 del rm
