@@ -247,7 +247,7 @@ class Beamscanner:
         self.pos_x_center = self.xVals[index]
         self.pos_y_center = self.yVals[index]
 
-    def findCenterMM(self, minRes=None):
+    def findCenterMM(self, minRes=None, , phaseAfter=None):
         """Runs a scan over the searchArea & finds maximum amplitude peak.
 
         Decreases range and resolution with each iteration until minRes in mm is reached"""
@@ -256,10 +256,10 @@ class Beamscanner:
         else:
             minRes = self.searchMinRes
             
-        self.findCenter(minRes=minRes)
+        self.findCenter(minRes=minRes, phaseAfter=phaseAfter)
 
 
-    def findCenter(self, minRes=500):
+    def findCenter(self, minRes=500, phaseAfter=3):
         """Runs scan over area & finds maximum amplitude peak.
         Begins at arbitrary position and decreases range and resolution with each iteration.
 
@@ -288,7 +288,7 @@ class Beamscanner:
             self.initScan(Range)
             self.scan(calibrate=False)
             search_iteration += 1
-            if search_iteration < 2:
+            if search_iteration < phaseAfter:
                 self.findMaxAmpPos()
                 print("Centering on max amplitude at X {:.3f}, Y {:.3f}".format(self.pos_x_center/self.conv_factor, self.pos_y_center/self.conv_factor))
             else:
