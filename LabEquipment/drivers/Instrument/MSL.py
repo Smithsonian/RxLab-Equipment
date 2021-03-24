@@ -181,7 +181,7 @@ if __name__ == "__main__":
     import visa
 
     # Run test code
-    rm = visa.ResourceManager('@py')
+    rm = visa.ResourceManager()
     m = MSL(rm.open_resource("ASRL/dev/ttyUSB0", partyName="X"))
     print("Set up MSL Translation stage on {}".format(MSL.resource.resource_name))
 

@@ -9,3 +9,5 @@ LabEquipment.egg-info
 /build
 /archive
 *.log
+*.logxx
+*.csv

@@ -123,6 +123,9 @@ class IVP(IV.IV):
             self.pm = None
             if self.verbose:
                 print("Unknown Error connecting to Power Meter on {:}.\n".format(self.pm_address))
+                print("PM settings:")
+                print("\tPM Averaging: {:}".format(self.pm_averaging))
+                raise
 
     def bias(self, bias):
         """Short cut to set the bias point to <bias> mV and return the

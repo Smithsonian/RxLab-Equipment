@@ -4,7 +4,7 @@
 # Larry Gardner, July 2018                                  #
 #############################################################
 
-import visa
+import pyvisa
 import os
 import time
 import sys
@@ -20,8 +20,12 @@ import LabEquipment.drivers.Instrument.HP83630A as HP83630A
 import LabEquipment.drivers.Instrument.HMCT2240 as HMCT2240
 import LabEquipment.drivers.Instrument.MSL as MSL
 
+plt.ion()
+plt.show()
+
 class Beamscanner:
-    def __init__(self):
+    def __init__(self):            
+        self._debug = False
 
         # Instruments
         self.vvm = None
@@ -53,30 +57,77 @@ class Beamscanner:
         f.close()
 
         # We need to know this first
-        self.conv_factor = float(lines[12].split("!")[0])
+        self.conv_factor = float(lines[13].split("!")[0])
 
         self.save_name = lines[0].split("!")[0].strip()
         self.Range = float(lines[1].split("!")[0])*self.conv_factor
         self.Res = float(lines[2].split("!")[0])*self.conv_factor
         self.Average = int(lines[3].split("!")[0])
-        self.Format = lines[4].split("!")[0].strip()
-        self.Testfreq = float(lines[5].split("!")[0])
-        self.IFfreq = float(lines[6].split("!")[0])
-        self.RFharm = int(lines[7].split("!")[0])
-        self.RFfinalHarm = int(lines[8].split("!")[0])
-        self.LOharm = int(lines[9].split("!")[0])
-        self.RFpow = float(lines[10].split("!")[0])
-        self.LOpow = float(lines[11].split("!")[0])
-        self.searchCenter = (float(lines[13].split("!")[0].split(",")[0])*self.conv_factor, float(lines[13].split("!")[0].split(",")[0])*self.conv_factor)
-        self.searchRange = float(lines[14].split("!")[0])*self.conv_factor
-        self.searchRes = float(lines[15].split("!")[0])*self.conv_factor
-        self.velocity = float(lines[16].split("!")[0])
-        self.accel = float(lines[17].split("!")[0])
+        self.CalInterval = int(lines[4].split("!")[0])
+        self.Format = lines[5].split("!")[0].strip()
+        self.Testfreq = float(lines[6].split("!")[0])*1.0e9
+        self.IFfreq = float(lines[7].split("!")[0])*1.0e6
+        self.RFharm = int(lines[8].split("!")[0])
+        self.RFfinalHarm = int(lines[9].split("!")[0])
+        self.LOharm = int(lines[10].split("!")[0])
+        self.RFpow = float(lines[11].split("!")[0])
+        self.LOpow = float(lines[12].split("!")[0])
+        self.searchCenter = (float(lines[14].split("!")[0].split(",")[0])*self.conv_factor, float(lines[14].split("!")[0].split(",")[1])*self.conv_factor)
+        self.searchRange = float(lines[15].split("!")[0])*self.conv_factor
+        self.searchRes = float(lines[16].split("!")[0])*self.conv_factor
+        self.searchMinRes = float(lines[17].split("!")[0])*self.conv_factor
+        self.velocity = float(lines[18].split("!")[0])
+        self.accel = float(lines[19].split("!")[0])
         self.pos_x_center = self.searchCenter[0]
         self.pos_y_center = self.searchCenter[1]
 
         self.setStep(self.Res)
         self.calcFreqs()
+
+    def printUSE(self):
+        """Print the values read from the USE file"""
+        print("""Use file:
+{:s}    ! Save name
+{:f}    ! Range
+{:f}    ! Resolution
+{:d}    ! Averaging
+{:d}    ! Cal interval
+{:s}    ! Format
+{:f}    ! Test frequency
+{:f}    ! IF frequency
+{:d}    ! RF harmonic
+{:d}    ! RF final harmonic
+{:d}    ! LO harmonic
+{:f}    ! RF power
+{:f}    ! LO power
+{:f}    ! Conversion factor
+{:f}, {:f}  ! Search center
+{:f}    ! Search range
+{:f}    ! Search resolution
+{:f}    ! Search minimum resolution
+{:f}    ! Velocity
+{:f}    ! Acceleration
+""".format(
+        self.save_name,
+        self.Range,
+        self.Res,
+        self.Average,
+        self.CalInterval,
+        self.Format,
+        self.Testfreq,
+        self.IFfreq,
+        self.RFharm,
+        self.RFfinalHarm,
+        self.LOharm,
+        self.RFpow,
+        self.LOpow,
+        self.conv_factor,
+        self.searchCenter[0], self.searchCenter[1],
+        self.searchRange,
+        self.searchRes,
+        self.searchMinRes,
+        self.velocity,
+        self.accel))
 
     def calcFreqs(self):
         """Calculate the frequencies for the RF and LO based on the harmonics
@@ -105,7 +156,7 @@ class Beamscanner:
             Ref IF Frequency    : {:8.4f} MHz
         """.format(self.Testfreq/1e9, self.RFharm, self.RFfreq/1e9, self.IFfreq/1e6, self.multLOfreq/1e9, self.LOharm, self.LOfreq/1e9, self.RFfinalHarm, self.reffreq/1e9, self.multLOfreq/self.RFfinalHarm/1e9, self.IFfreq/self.RFfinalHarm/1e6))
 
-    def initGPIB(self):
+    def initGPIB(self, backend="@py"):
         """Initialize PyVisa and check it's working.
 
         "no langid" errors are likely a permissions issue - make sure the current user
@@ -117,7 +168,7 @@ class Beamscanner:
         https://github.com/pyvisa/pyvisa/issues/212
         """
         # Lists available resources
-        rm = visa.ResourceManager('@py')
+        rm = pyvisa.ResourceManager(backend)
         try:
             lr = rm.list_resources()
         except ValueError:
@@ -161,7 +212,7 @@ class Beamscanner:
 
     def setRangeMM(self, Range):
         """Sets the range to Range mm.
-        Converst to MSL steps before calling .setRange()"""
+        Converts to MSL steps before calling .setRange()"""
         self.Range(Range*self.conv_factor)
 
     def setRange(self, Range):
@@ -182,21 +233,33 @@ class Beamscanner:
         self.setStep(res*self.conv_factor)
 
 
-    def findMaxPos(self):
+    def findMaxAmpPos(self):
         # Finds the X and Y positions of maximum voltmeter amplitude
         # Function only used in "findCenter"
         index = np.unravel_index(np.argmax(np.abs(self.trans), axis=None), self.trans.shape)
         self.pos_x_center = self.xVals[index]
         self.pos_y_center = self.yVals[index]
+        
+    def findMinPhasePos(self):
+        # Finds the X and Y positions of minimum voltmeter phase
+        # Function only used in "findCenter"
+        index = np.unravel_index(np.argmin(np.angle(self.trans), axis=None), self.trans.shape)
+        self.pos_x_center = self.xVals[index]
+        self.pos_y_center = self.yVals[index]
 
-    def findCenterMM(self, minRes=0.1):
+    def findCenterMM(self, minRes=None, , phaseAfter=None):
         """Runs a scan over the searchArea & finds maximum amplitude peak.
 
         Decreases range and resolution with each iteration until minRes in mm is reached"""
-        self.findCenter(minRes=minRes*self.conv_factor)
+        if minRes:
+            pass
+        else:
+            minRes = self.searchMinRes
+            
+        self.findCenter(minRes=minRes, phaseAfter=phaseAfter)
 
 
-    def findCenter(self, minRes=500):
+    def findCenter(self, minRes=500, phaseAfter=3):
         """Runs scan over area & finds maximum amplitude peak.
         Begins at arbitrary position and decreases range and resolution with each iteration.
 
@@ -208,28 +271,45 @@ class Beamscanner:
         Range = self.searchRange
         self.pos_x_center = self.searchCenter[0]
         self.pos_y_center = self.searchCenter[1]
+        
+
+        search_iteration = 0
 
         while res >= minRes:
+                
+            print("  Search center : {:.3f}, Y {:.3f}".format(self.pos_x_center/self.conv_factor, self.pos_y_center/self.conv_factor))
+            print("  Search range  : {:.2f}".format(Range/self.conv_factor))
+            print("  Search res    : {:.3f}".format(res/self.conv_factor))
+            print("  Min res       : {:.3f}".format(minRes/self.conv_factor))
             self.setRange(Range)
             self.setStep(res)
 
             self.moveToCenter()
             self.initScan(Range)
-            self.scan()
-            self.findMaxPos()
+            self.scan(calibrate=False)
+            search_iteration += 1
+            if search_iteration < phaseAfter:
+                self.findMaxAmpPos()
+                print("Centering on max amplitude at X {:.3f}, Y {:.3f}".format(self.pos_x_center/self.conv_factor, self.pos_y_center/self.conv_factor))
+            else:
+                self.findMinPhasePos()
+                print("Centering on min phase at X {:.3f}, Y {:.3f}".format(self.pos_x_center/self.conv_factor, self.pos_y_center/self.conv_factor))
+            
+
 
             Range = Range / 5
             res = Range / 5
-            print("Centering on X {:.3f}, Y {:.3f}".format(self.pos_x_center/self.conv_factor, self.pos_y_center/self.conv_factor))
             if self.plotCenter:
-                self.contour_plot_dB()
-                self.contour_plot_deg()
+                self.contour_plot_dB(name_elem="_{:d}".format(search_iteration))
+                self.contour_plot_deg(name_elem="_{:d}".format(search_iteration))
 
         print("Found center at X {:.3f}, Y {:.3f}\n".format(self.pos_x_center/self.conv_factor, self.pos_y_center/self.conv_factor))
         self.setStep(self.Res)
         self.setRange(self.Range)
 
     def moveToCenter(self):
+        if self._debug:
+            print(" DEBUG: in moveToCenter()")
         # Moves MSL's to center position and sets new home position
         self.msl_x.moveAbs(int(self.pos_x_center))
         self.msl_y.moveAbs(int(self.pos_y_center))
@@ -239,6 +319,8 @@ class Beamscanner:
         #self.msl_y.zero()
 
     def initScan(self, Range=None):
+        if self._debug:
+            print(" DEBUG: in initScan(Range={})".format(Range))
         if Range==None:
             Range = self.Range
 
@@ -266,6 +348,7 @@ class Beamscanner:
 
         self.time = np.zeros_like(self.xVals, dtype=float)
         self.trans = np.zeros_like(self.xVals, dtype=complex)
+        self.calVals = np.zeros_like(self.trans, dtype=complex)
 
         # VVM ready to begin collecting data
         self.vvm.trigger()
@@ -279,7 +362,7 @@ class Beamscanner:
             try:
                 trans = self.vvm.getTransmission()
                 break
-            except visa.VisaIOError:
+            except pyvisa.VisaIOError:
                 print("Visa Timeout Error, retrying twice")
                 if retry < 2:
                     retry +=1
@@ -291,19 +374,60 @@ class Beamscanner:
             except ValueError:
                 pass
         return trans
+        
+    def getPowers(self):
+        """Get the A and B powers from the VVM.  Loop if necessary to avoid
+        one-off time out errors"""
+        retry = 0
+        while True:
+            try:
+                apow = float(self.vvm.getData(meas="APOW"))
+                bpow = float(self.vvm.getData(meas="BPOW"))
+                break
+            except pyvisa.VisaIOError:
+                print("Visa Timeout Error, retrying twice")
+                if retry < 2:
+                    retry +=1
+                    pass
+                else:
+                    # Re-raise the exception
+                    raise
+                    break
+            except ValueError:
+                pass
+        return apow, bpow
 
 
-    def scan(self):
+    def scan(self, calibrate=True):
         """Scan over the meshgrids of the stored xVals and yVals, and record data
         in trans.
 
         initScan will set up the xVals and yVals array as a regular raster scan grid.
-        however, this methods will work with any scan pattern defined in those variables."""
+        however, this methods will work with any scan pattern defined in those variables.
+
+        If calibrate is True, the transmission at pos_x_center, pos_y_center will be
+        recorded every self.calInterval points and stored in self.calVals"""
+        if self._debug:
+            print(" DEBUG: in scan(calibrate={})".format(calibrate))
         self.initTime()
+
+        if self.CalInterval <= 0:
+            calibrate = False
+
+        lastCalValue = complex(0.,0.)
+
+        if calibrate:
+            self.moveToCenter()
+            lastCalValue = self.getTransmission()
 
         for i, x in enumerate(self.xVals.ravel()):
             k = i
             y = self.yVals.ravel()[k]
+
+            if calibrate:
+                if abs(x-self.pos_x_center) < self.Step:
+                    self.moveToCenter()
+                    lastCalValue = self.getTransmission()
 
             if self.verbose:
                 print("Moving to: X: {:.1f}, Y:{:.1f}".format(x, y))
@@ -317,6 +441,7 @@ class Beamscanner:
             self.xVals.ravel()[k] = self.msl_x.getPos()
             self.yVals.ravel()[k] = self.msl_y.getPos()
             self.trans.ravel()[k] = self.getTransmission()
+            self.calVals.ravel()[k] = lastCalValue
             self.time.ravel()[k] = time.time() - self.start_time
             if self.verbose or (i % 10) == 0:
                 print("    k: {:d}  X: {:.3f}, Y: {:.3f}, {:f} dB, {:f} deg".format(k, self.xVals.ravel()[k]/self.conv_factor, self.yVals.ravel()[k]/self.conv_factor, 20*np.log10(np.abs(self.trans.ravel()[k])), np.degrees(np.angle(self.trans.ravel()[k]))))
@@ -332,6 +457,7 @@ class Beamscanner:
         x_data = self.xVals/self.conv_factor
         y_data = self.yVals/self.conv_factor
         trans_data = self.trans
+        cal_data = self.calVals
         time_data = self.time
 
         if self.scan_type == "raster":
@@ -339,15 +465,18 @@ class Beamscanner:
             x_data[1::2,:] = x_data[1::2,::-1]
             y_data[1::2,:] = y_data[1::2,::-1]
             trans_data[1::2,:] = trans_data[1::2,::-1]
+            cal_data[1::2,:] = cal_data[1::2,::-1]
             time_data[1::2,:] = time_data[1::2,::-1]
 
-        outdata = np.array((x_data.ravel(), y_data.ravel(), trans_data.ravel().real, trans_data.ravel().imag, time_data.ravel()), dtype='float')
+        outdata = np.array((x_data.ravel(), y_data.ravel(), trans_data.ravel().real, trans_data.ravel().imag, cal_data.ravel().real, cal_data.ravel().imag, time_data.ravel()), dtype='float')
 
         np.savetxt(self.save_name, outdata.transpose(), delimiter=", ")
 
 
-    def contour_plot_dB(self):
+    def contour_plot_dB(self, name_elem = None):
         """Plot a contour plot in dB of the beam pattern"""
+        if not name_elem:
+            name_elem = ""
 
         xi = np.linspace(self.pos_x_min/self.conv_factor, self.pos_x_max/self.conv_factor, 1000)
         yi = np.linspace(self.pos_y_min/self.conv_factor, self.pos_y_max/self.conv_factor, 1000)
@@ -357,6 +486,7 @@ class Beamscanner:
 
         zi = griddata(pts/self.conv_factor, 20*np.log10(np.abs(self.trans.ravel())), (xi, yi), method="linear")
 
+        plt.clf() 
         CS = plt.contourf(xi, yi, zi)
         CL = plt.contour(xi, yi, zi, colors='k')
         plt.clabel(CL, colors='k')
@@ -366,13 +496,15 @@ class Beamscanner:
         plt.xlim(self.pos_x_min/self.conv_factor, self.pos_x_max/self.conv_factor)
         plt.ylim(self.pos_y_min/self.conv_factor, self.pos_y_max/self.conv_factor)
         plt.title("Amplitude vs. Position")
-        plt.savefig(self.save_name.split(".")[0] + "dB_cntr.png")
-        plt.show()
+        plt.draw()
+        plt.pause(0.001)
+        plt.savefig("{}{}{}".format(self.save_name.split(".")[0], name_elem, "_dB.png"))
 
 
-
-    def contour_plot_deg(self):
+    def contour_plot_deg(self, name_elem = None):
         """Plot a contour plot in dB of the beam pattern"""
+        if not name_elem:
+            name_elem = ""
 
         xi = np.linspace(self.pos_x_min/self.conv_factor, self.pos_x_max/self.conv_factor, 1000)
         yi = np.linspace(self.pos_y_min/self.conv_factor, self.pos_y_max/self.conv_factor, 1000)
@@ -381,7 +513,8 @@ class Beamscanner:
         pts = np.array((self.xVals.ravel(), self.yVals.ravel())).transpose()
 
         zi = griddata(pts/self.conv_factor, np.rad2deg(np.angle(self.trans.ravel())), (xi, yi), method="linear")
-
+        
+        plt.clf() 
         CS = plt.contourf(xi, yi, zi)
         CL = plt.contour(xi, yi, zi, colors='k')
         plt.clabel(CL, colors='k')
@@ -391,7 +524,9 @@ class Beamscanner:
         plt.xlim(self.pos_x_min/self.conv_factor, self.pos_x_max/self.conv_factor)
         plt.ylim(self.pos_y_min/self.conv_factor, self.pos_y_max/self.conv_factor)
         plt.title("Phase vs. Position")
-        plt.savefig(self.save_name.split(".")[0] + "deg_cntr.png")
+        plt.draw()
+        plt.pause(0.001)
+        plt.savefig("{}{}{}".format(self.save_name.split(".")[0], name_elem, "_deg.png"))
         plt.show()
 
     def time_plot(self, file_name):
@@ -534,22 +669,23 @@ if __name__ == "__main__":
     bs.initTime()
     bs.readUSE()
 
-    bs.verbose = True
-    bs.plotCenter = True
+    bs.verbose = False
+    bs.plotCenter = False
     # Disable finding center for testing speed
-    #bs.centerBeforeScan = False
+    bs.centerBeforeScan = False
 
     # Establishes instrument communication
     rm = bs.initGPIB()
     bs.vvm = HP8508A.HP8508A(rm.open_resource("GPIB0::8::INSTR"))
     bs.RF = HMCT2240.HMCT2240(rm.open_resource("GPIB0::30::INSTR"))
     bs.LO = HP83630A.HP83630A(rm.open_resource("GPIB0::19::INSTR"))
-    bs.msl_x = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0"), partyName="X")
-    bs.msl_y = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0"), partyName="Y")
+    # For WIndows
+    bs.msl_x = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0::INSTR"), partyName="X")
+    bs.msl_y = MSL.MSL(rm.open_resource("ASRL/dev/ttyUSB0::INSTR"), partyName="Y")
 
     # Initializes instruments
-    bs.initVVM()
     bs.initSG()
+    bs.initVVM()
 
 
     bs.initMSL()
@@ -585,5 +721,10 @@ if __name__ == "__main__":
 #    bs.y_plot(bs.save_name)
     # Plots amplitude and phase vs. X position for slice at center of beam
 #    bs.x_plot(bs.save_name)
+
+    print("Deleting Beamscanner object")
+    del bs
+    print("Deleting Visa Resource Manager object")
+    del rm
 
     print("\nEnd.")
