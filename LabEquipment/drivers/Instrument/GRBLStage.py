@@ -41,7 +41,7 @@ class GRBLStage(object):
             maxpos (float): maximum travel in mm.
             axis (int): axis to set maximum travel for. One of 0 (x), 1 (y), 2(z)
         """
-        self.resource.send_immediately(f"${130+axis:d}={maxpos:.2f}")
+        self.resource.send_immediately(f"${(130+axis):d}={maxpos:.2f}")
         self.resource.request_settings()
         
     def set_vel(self, vel):
@@ -63,7 +63,7 @@ class GRBLStage(object):
 
     def set_vel_max(self, maxvel, axis=0):
         'Set Max Velocity (for axis 0 = x, which will be the same as y by default'
-        self.resource.send_immediately(f"${str(110+axis):d}={maxvel:.2f}"]
+        self.resource.send_immediately(f"${(110+axis):d}={maxvel:.2f}")
         self.resource.request_settings()
 
     def get_vel(self):
@@ -85,7 +85,7 @@ class GRBLStage(object):
         
     def set_vel_max(self, acc, axis=0):
         'Set acceleration for axis in mm/s^2'
-        self.resource.send_immediately(f"${str(120+axis):d}={acc:.2f}")
+        self.resource.send_immediately(f"${(120+axis):d}={acc:.2f}")
         self.resource.request_settings()
 
     def get_params(self):
