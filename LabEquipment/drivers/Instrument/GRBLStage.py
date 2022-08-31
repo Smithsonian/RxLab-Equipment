@@ -3,6 +3,8 @@
 # Paul Grimes, Aug 2018
 # from code by Larry Gardner, Jul 2018
 #
+import time
+
 import numpy as np
 
 from gerbil.gerbil import Gerbil
