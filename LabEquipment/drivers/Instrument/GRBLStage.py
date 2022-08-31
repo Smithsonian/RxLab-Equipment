@@ -3,6 +3,7 @@
 # Paul Grimes, Aug 2018
 # from code by Larry Gardner, Jul 2018
 #
+import numpy as np
 
 from gerbil.gerbil import Gerbil
 
@@ -15,77 +16,95 @@ class GRBLStage(object):
         self.resource.cnect(serial_port)
         self.resource.poll_start()
         
-    def set_vel_init(self, vel):
-        'Set Initial Velocity'
-        self.send_immediately("{} VI={:d}".format(drv, vel))
+        self.feedrate = 3000
+        
+        
+    def get_max_pos(self, axis=0):
+        'Get the maximum travel in mm(for axis 0 = x)'
+        return self.resource.settings[str(100+axis)]
+    
+    def set_max_pos(self, maxpos, axis=0):
+        'Set the maximum travel in mm (for axis 0 = x)'
+        self.resource.send_immediately(f"${100+axis:d}={maxpos:.2f}")
+        
+    def set_vel(self, vel):
+        'Set default speed in mm/min'
+        self.feedrate = vel
 
-    def set_vel_max(self, vel):
-        'Set max velocity'
-        self.write("{} VM={:d}".format(drv, vel))
+    def get_vel_max(self, axis=0):
+        'Returns Max Velocity in mm/min (for axis 0 = x, which will be the same as y by default)'
+        return self.resource.settings[str(110+axis)]
 
-    def get_vel_init(self):
-        'Returns Initial Velocity'
-        return int(self.query("{} PR VI".format(drv)))
-
-    def get_vel_max(self):
-        'Returns Max Velocity'
-        return int(self.query("{} PR VM".format(drv)))
+    def set_vel_max(self, maxvel, axis=0):
+        'Set Max Velocity (for axis 0 = x, which will be the same as y by default'
+        self.resource.send_immediately(f"${str(110+axis):d}={maxvel:.2f}"]
 
     def get_vel(self):
         'Returns current velocity'
-        return int(self.query("{} PR V".format(drv)))
+        return self.feedrate
 
-    def set_accel(self, acl):
-        'Sets acceleration'
-        self.write("{} A={:d}".format(drv, acl))
-
-    def set_decel(self, dec):
-        'Sets deceleration'
-        self.write("{} D={:d}".format(drv, dec))
-
-    def get_accel(self):
+    def get_accel(self, axis=0):
         'Returns acceleration'
-        return int(self.query("{} PR A".format(drv)))
+        return self.resource.settings[str(120+axis)]
 
     def get_params(self):
-        'Returns all parameters'
-        params = self.resource.request_settings()
-        
-        return params
+        'Returns all parameters as a dictionary of GRBL $ values'
+        return self.resource.settings
 
-    def move_abs(self, pos):
+    def move_abs(self, pos, feedrate=self.feedrate, blocking=True):
         'Moves to an absolute position from 0'
         self.resource.send_immediately("G90")
-        self.resource.send_immediately("G1 X{pos[0]:.2f} Y{pos[1]:.2f}")
+        self.resource.send_immediately(f"G1 X{pos[0]:.2f} Y{pos[1]:.2f} F{feedrate:.2f}")
+        
+        if blocking:
+            self.block_while_moving()
 
-    def move_rel(self, pos):
+    def move_rel(self, pos, feedrate=self.feedrate, blocking=True):
         'Moves distance from current position'
         self.resource.send_immediately("G91")
-        self.resource.send_immediately("G1 X{pos[0]:.2f} Y{pos[1]:.2f}")
+        self.resource.send_immediately(f"G1 X{pos[0]:.2f} Y{pos[1]:.2f} F{feedrate:.2f}")
+                
+        if blocking:
+            self.block_while_moving()
         
     def set_zero(self):
         'Sets current position to the zero position'
-        self.resource.send_immediately("G92 X0 Y0")
+        self.set_curr_pos([0, 0])
         
-    def home(self):
+    def set_curr_pos(self, pos):
+        'Sets the current position to an (X, Y) value, defining a new origin for the XY coordinate system'
+        self.resource.send_immediately(f"G92 X{pos[0]:.2f} Y{pos[1]:.2f}")
+        # Update hash state so that get_pos returns the correct position
+        self.resource.get_hash_state()
+        
+    def home(self, blocking=True):
         'Home the XY stage'
         self.resource.homing()
+        if blocking:
+            self.block_while_moving()
 
     def get_pos(self):
-        'Returns position relative to 0'
-        return int(self.query("{} PR P".format(drv)))
+        'Returns position relative to the current G92 origin'
+        return np.array(self.resource.cmpos) - np.array(self.resource.settings_hash["G92"])
+    
+    def get_abs_pos(self):
+        'Returns the absolute position in machine coordinates'
+        return np.array(self.resource.cmpos)
 
     def is_moving(self):
         return self.resource.cmode == "Run"
 
-    def hold(self):
+    def block_while_moving(self):
         'Holds instruction till motion has stopped'
+        time.sleep(self.resource.polling_interval)
         while self.is_moving():
-            pass
+            time.sleep(self.resource.polling_interval)
 
-    def zero(self):
+    def zero(self, blocking=True):
         'Go to the zero position'
         self.resource.send_immediately("G1 X0 Y0")
+        if blocking:
+            self.block_while_moving()
 
     def initialize(self):
         'Reset the GRBL controller'
