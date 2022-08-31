@@ -75,7 +75,7 @@ class GRBLStage(object):
 
     def set_max_vel(self, maxvel, axis=0):
         'Set Max Velocity (for axis 0 = x, which will be the same as y by default'
-        self.resource.send_immediately(f"${(110+axis):d}={maxvel:.2f}"]
+        self.resource.send_immediately(f"${(110+axis):d}={maxvel:.2f}")
         self.resource.request_settings()
 
     def get_vel(self):
@@ -169,7 +169,7 @@ class GRBLStage(object):
 
 if __name__ == "__main__":
     # Run test code
-    m = XY_Stage("/dev/ttyUSB0")
+    m = GRBLStage("/dev/ttyUSB0")
     print("Set up communication with MSL Translation stages on {}".format(m.resource))
     print()
     print("Current Position of Stage: {:d} {:d}".format(m.get_pos()))
