@@ -92,7 +92,7 @@ class MSL_XY(Instrument.Instrument):
     def isMoving(self, drv="*"):
         return bool(int(self.query("{} PR MV".format(drv))))
 
-    def hold(self, drv="*"):
+    def block_while_moving(self, drv="*"):
         'Holds instruction till motion has stopped'
         while self.isMoving(drv):
             None
