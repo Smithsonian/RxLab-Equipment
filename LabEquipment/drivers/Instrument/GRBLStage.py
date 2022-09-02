@@ -110,6 +110,7 @@ class GRBLStage(object):
             feedrate = self.feedrate
         self.resource.send_immediately("G90")
         self.resource.send_immediately(f"G1 X{pos[0]:.2f} Y{pos[1]:.2f} F{feedrate:.2f}")
+        self.resource.cmode = "Run"
         
         if blocking:
             self.block_while_moving()
@@ -120,6 +121,7 @@ class GRBLStage(object):
             feedrate = self.feedrate
         self.resource.send_immediately("G91")
         self.resource.send_immediately(f"G1 X{pos[0]:.2f} Y{pos[1]:.2f} F{feedrate:.2f}")
+        self.resource.cmode = "Run"
                 
         if blocking:
             self.block_while_moving()
@@ -137,6 +139,7 @@ class GRBLStage(object):
     def home(self, blocking=True):
         'Home the XY stage'
         self.resource.homing()
+        self.resource.cmode = "Run"
         if blocking:
             self.block_while_moving()
 
@@ -160,6 +163,8 @@ class GRBLStage(object):
     def zero(self, blocking=True):
         'Go to the zero position'
         self.resource.send_immediately("G1 X0 Y0")
+        self.resource.cmode = "Run"
+        
         if blocking:
             self.block_while_moving()
 
