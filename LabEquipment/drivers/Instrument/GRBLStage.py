@@ -156,7 +156,7 @@ class GRBLStage(object):
 
     def block_while_moving(self):
         'Holds instruction till motion has stopped'
-        time.sleep(self.resource.poll_interval)
+        time.sleep(self.resource.poll_interval*1.5)
         while self.is_moving():
             time.sleep(self.resource.poll_interval)
 
