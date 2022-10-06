@@ -12,10 +12,14 @@ from gerbil.gerbil import Gerbil
 class GRBLStage(object):
     ''' Class for communicating with a GRBL based X-Y stage, using the Gerbil
     module.'''
+    
+    
 
     def __init__(self, serial_port, strict=False):
         self.resource = Gerbil()
         self.address = serial_port
+        
+        self._active_states = ["Run", "Jog", "Home"]
         
         self.connect()
     
@@ -152,7 +156,8 @@ class GRBLStage(object):
         return np.array(self.resource.cmpos)
 
     def is_moving(self):
-        return self.resource.cmode == "Run"
+        return self.resource.cmode in self._active_states
+        
 
     def block_while_moving(self):
         'Holds instruction till motion has stopped'
