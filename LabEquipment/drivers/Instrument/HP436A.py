@@ -220,7 +220,7 @@ if __name__ == "__main__":
     import visa
     rm = visa.ResourceManager()
     res = rm.open_resource("GPIB0::13::INST")
-    pm = PowerMeter(res, averaging=Settle)
+    pm = PowerMeter(res, averaging="Settle")
 
     print("Power : {:g} {:s}".format(pm.getData(), pm.units))
     print("Range : {:d}".format(pm.returnedRange))
