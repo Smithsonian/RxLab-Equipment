@@ -143,7 +143,6 @@ class GRBLStage(object):
     def home(self, blocking=True):
         'Home the XY stage'
         self.resource.homing()
-        self.resource.cmode = "Run"
         if blocking:
             self.block_while_moving()
 
