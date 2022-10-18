@@ -71,6 +71,13 @@ class HP8508A(Instrument.Instrument):
         '''Set the trigger to free run'''
         self.setTrigger("FREE")
 
+    def blank_screen(self):
+        '''Blank the screen - this significantly increases the speed of reading data.'''
+        self.write("DISP:STAT OFF")
+        
+    def show_screen(self):
+        '''Turn the screen display back on'''
+        self.write("DISP:STAT ON")
 
     def setFormat(self, format):
         '''Set the output format of the VVM
