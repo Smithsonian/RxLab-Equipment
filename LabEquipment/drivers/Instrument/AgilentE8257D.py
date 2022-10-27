@@ -4,7 +4,7 @@
 #
 # Module to operate the Agilent E8257D Synthesizer using PyVisa and GPIB.
 #
-import visa
+import pyvisa as visa
 
 class AgilentE8257D(object):
     """Class for communicating with an Agilent E8257D Synthesizer"""

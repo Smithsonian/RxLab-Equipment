@@ -1,7 +1,7 @@
 # Anritsu MS26xxx Spectrum Analyzer operation code
 # Paul Grimes, Sept. 2008
 
-import visa
+import pyvisa as visa
 
 class SpecA(object):
   def __init__(self, InstAddr="GPIB::2"):
