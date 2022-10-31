@@ -1,10 +1,10 @@
 # Anritsu MS26xxx Spectrum Analyzer operation code
 # Paul Grimes, Sept. 2008
 
-import pyvisa as visa
+from ..Instrument import Instrument
 
 class SpecA(object):
-  def __init__(self, InstAddr="GPIB::2"):
+  def __init__(self, resource):
     """Create Spectrum Analyzer object.
 
       InstAddr is the address of the spectrum analyzer - try "GPIB::2" by default"""
