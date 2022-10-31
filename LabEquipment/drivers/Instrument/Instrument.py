@@ -3,12 +3,8 @@ class Instrument(object):
 
     Encapsulates the pyvisa resource, and provides basic communications
     functions which can be used to implement instrument specific functions"""
-    def __init__(self, resource, strict=False, idString=None):
+    def __init__(self, resource):
         self.resource = resource
-        # Check ID is correct
-        if strict == True and idString:
-            if self.idn.split(",")[1] != idString:
-                raise ValueError("Instrument ID is not {:s}: got {:s}".format(idString, self.idn))
 
     def write(self, *args, **kwargs):
         """Writes a command string to the instrument"""

@@ -1,23 +1,11 @@
 # Lakeshore 218 Temperature Monitor module
 # Paul Grimes, Sept. 2008, June 2018
+from ..Instrument import Instrument
 
-import pyvisa
-import string
-
-class Lakeshore(object):
-    def __init__(self, InstAddr="GPIB::11", strict=False, idString="83630A"):
-        """Create Lakeshore Temperature Monitor object.
-
-        if InstAddr[0:3] == "COM": # We are using RS232 and need to set up the instrument more carefully
-        self.inst = rm.open_resource(InstAddr, baud_rate=9600, data_bits=7, stop_bits=1, parity=visa.odd_parity, term_chars="\r\n", delay = 0.05)
-
-        rm = pyvisa.ResourceManager()
-        pm = HP8508A(rm.open_resource(<InstAddr>))
-        InstAddr is the PyVisa address of the VVM - try "GPIB::11" by default"""
-
-        super().__init__(resource, strict, idString)
-
-
+class Lakeshore(Instrument):
+    def __init__(self, resource):
+        """Create Lakeshore Temperature Monitor object from a PyVisa resource"""
+        super().__init__(resource)
 
     ### Device specific Visa commands that wrap around the above generic commands
     def get_temp_log(self, outfilename, sensor_list):
