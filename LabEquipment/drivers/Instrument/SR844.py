@@ -30,9 +30,9 @@ class SR844(Instrument.Instrument):
         self.mode = "UNKNOWN"
         self._format = "POLAR"
         self._scale = "LOGARITHMIC"
-        self._output = [outputs.dBm, outputs.Theta]
+        self._output = [self.outputs.dBm, self.outputs.Theta]
         self.format = self.getFormat()
-        self.average = self.getAveraging()
+        self.averaging = 5
         
         # Set termination characters
         self.resource.read_termination = '\n'
@@ -61,7 +61,7 @@ class SR844(Instrument.Instrument):
         Z
         CORE
         modes can be concatenated with comma separation'''
-        self.write("SENSE {:s}".format(mode))
+        #self.write("SENSE {:s}".format(mode))
         self.mode = mode
 
     def setFormat(self, format):
@@ -81,9 +81,15 @@ class SR844(Instrument.Instrument):
         
         if "POL" in format:
             self._format = "POLAR"
+            if self._scale == "LINEAR":
+                self._output = [self.outputs.R, self.outputs.Theta]
+            else:
+                self._output = [self.outputs.dBm, self.outputs.Theta]
         elif "RECT" in format or "CART" in format:
             self._format = "RECTANGULAR"
             self._scale = "LINEAR"
+            self._output = [self.outputs.X, self.outputs.Y]
+
 
     def getFormat(self):
         '''Return the current output format of the VVM'''
@@ -109,18 +115,18 @@ class SR844(Instrument.Instrument):
     def getTransmission(self):
         '''Return the data from the VVM'''
         # Get the data
-        datastr = self.query(f"SNAP? {self._output[0]},{self._output[1]}")
+        datastr = self.query(f"SNAP? {self._output[0]:d},{self._output[1]:d}")
         
-        if self.format == "POLAR":
+        if self._format == "POLAR":
             amp = float(datastr.split(",")[0])
             phase = float(datastr.split(",")[1])
                 
-            if self.scale == "LOGARITHMIC":
+            if self._scale == "LOGARITHMIC":
                 data = dBdeg2complex(amp, phase)
             else:
                 data = lindeg2complex(amp, phase)
 
-        elif self.format == "RECTANGULAR":
+        elif self._format == "RECTANGULAR":
             x = float(datastr.split(",")[0])
             y = float(datastr.split(",")[1])
             data = complex(x, y)
@@ -129,14 +135,14 @@ class SR844(Instrument.Instrument):
 
     def getUnits(self):
         ''' Returns units for format types'''
-        if self.scale == "LINEAR":
+        if self._scale == "LINEAR":
             x_units = "volts"
-        elif self.scale == "LOGARITHMIC":
+        elif self._scale == "LOGARITHMIC":
             x_units = "dBm"
 
-        if self.format == "POLAR":
+        if self._format == "POLAR":
             y_units = "deg"
-        elif self.format == "RECTANGULAR":
+        elif self._format == "RECTANGULAR":
             y_units = "Real + Imag"
 
         units = (x_units, y_units)
