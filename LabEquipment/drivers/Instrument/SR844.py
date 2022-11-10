@@ -99,13 +99,13 @@ class SR844(Instrument.Instrument):
         '''Set the output format of the VVM to LOG - (dB) or (dB, deg) for TRANSMISSION'''
         self.setFormat("LOG")
 
-    def setWait(self, window):
-        '''Set the multiple of the integration time to wait before reading'''
-        self.averaging = window
-
     def getAveraging(self):
         '''Get the number of samples averaged for each data point'''
         return self.averaging
+
+    def setAveraging(self, averaging):
+        '''Get the number of samples averaged for each data point'''
+        self.averaging = averaging
 
     def getWait(self):
         int_time = int(self.query("OFLT?"))
