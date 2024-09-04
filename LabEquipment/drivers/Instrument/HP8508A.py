@@ -108,6 +108,13 @@ class HP8508A(Instrument.Instrument):
         self.averaging = int(self.query("AVER:COUN?"))
         return self.averaging
 
+    def blank_screen(self):
+        '''Turn off the display - speeds up reading of data over GPIB'''
+        self.write("DISP:STAT OFF")
+        
+    def show_screen(self):
+        '''Turn on the display - slows down reading of data over GPIB'''
+        self.write("DISP:STAT ON")
 
     def trigger(self):
         '''Trigger a measurement with the VVM'''
@@ -159,7 +166,6 @@ class HP8508A(Instrument.Instrument):
         units = (x_units, y_units)
 
         return units
-
 
     def getData(self, meas=None):
         '''Return the requested measurement(s) from the VVM<meas> is one of:
