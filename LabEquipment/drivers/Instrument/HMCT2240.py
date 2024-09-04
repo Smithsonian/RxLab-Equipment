@@ -3,14 +3,10 @@ from ..Instrument import Instrument
 class HMCT2240(Instrument.Instrument):
     """Class for communicating with an HMC-T2240 signal generator"""
 
-    def __init__(self, resource, strict=False, idString="HMC-T2240"):
-        """Create Signal Generator object from PyVisa resource.
+    def __init__(self, resource):
+        """Create Signal Generator object for a HMC-T2240 froma a PyVisa resource."""
 
-        rm = pyvisa.ResourceManager()
-        sg = HMCT2240(rm.open_resource(<InstAddr>))
-        InstAddr is the PyVisa address of the SG - try "GPIB0::30::INSTR" by default"""
-
-        super().__init__(resource, strict, idString)
+        super().__init__(resource)
 
         self.freq = self.getFreq()
         self.power = self.getPower()
