@@ -458,7 +458,7 @@ if __name__ == "__main__":
     bs.vvm = HP8508A.HP8508A(rm.open_resource("GPIB0::8::INSTR"))
     bs.RF = HMCT2240.HMCT2240(rm.open_resource("GPIB0::30::INSTR"))
     bs.LO = HMCT2240.HMCT2240(rm.open_resource("GPIB0::23::INSTR"))
-    bs.msl = MSL_XY.MSL_XY(rm.open_resource("ASRL/dev/ttyUSB0"))
+    bs.msl = MSL_XY.MSL_XY(rm.open_resource("ASRL/dev/ttyUSB0::INSTR", baud_rate=9600, encoding='windows-1252'))
     
     # Initializes instruments
     bs.initVVM()

@@ -22,6 +22,10 @@ class MSL_XY(Instrument.Instrument):
     def __init__(self, resource, strict=False):
 
         super().__init__(resource)
+        
+        self.resource.baud_rate = 9600
+        
+        self.resource.encoding = 'windows-1252'
 
         self.resource.read_termination = '\r\n'
         self.resource.write_termination = '\n'
@@ -77,7 +81,7 @@ class MSL_XY(Instrument.Instrument):
         'Moves to an absolute position from 0'
         self.write("{} MA {:d}".format(drv, pos))
 
-    def moveRel(self, pos, drv="*"):
+    def  moveRel(self, pos, drv="*"):
         'Moves distance from current position'
         self.write("{} MR {:d}".format(drv, pos))
 
@@ -95,12 +99,12 @@ class MSL_XY(Instrument.Instrument):
     def block_while_moving(self, drv="*"):
         'Holds instruction till motion has stopped'
         while self.isMoving(drv):
-            None
+            time.sleep(0.05)
 
     def zero(self, drv="*"):
         'Makes the minimum position the home'
         self.moveAbs(-550000, drv)
-        self.hold(drv)
+        self.block_while_moving(drv)
         while self.getPos(drv) != '0':
             self.setHome(drv)
 
