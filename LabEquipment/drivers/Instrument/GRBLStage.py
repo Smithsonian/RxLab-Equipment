@@ -12,8 +12,6 @@ from gerbil.gerbil import Gerbil
 class GRBLStage(object):
     ''' Class for communicating with a GRBL based X-Y stage, using the Gerbil
     module.'''
-    
-    
 
     def __init__(self, serial_port, strict=False):
         self.resource = Gerbil()
@@ -41,7 +39,7 @@ class GRBLStage(object):
         """Return the maximum travel in mm.
         
         arguments:
-            axis (int): axis to set maximum travel for. One of 0 (x), 1 (y), 2(z)
+            axis (int): axis to get maximum travel for. One of 0 (x), 1 (y), 2(z)
         returns:
             float or numpy.array: maximum limits in mm.
         """
