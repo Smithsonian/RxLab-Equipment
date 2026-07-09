@@ -4,7 +4,7 @@
 # from code by Larry Gardner, Jul 2018
 #
 import time
-import collections.abs.Iterable
+from collections.abc import Iterable
 
 from ..Instrument import Instrument
 
@@ -38,11 +38,11 @@ class MSL_XY(Instrument.Instrument):
     def set_vel_init(self, vel):
         'Set initial velocity for both drives'
         
-        if not isinstance(vel, collections.abc.Iterable):
+        if not isinstance(vel, Iterable):
             vel = [vel, vel]
             
-        self.set_vel_init_drv(vel[0], self.X)
-        self.set_vel_init_drv(vel[1], self.Y)
+        self.set_vel_init_drv(int(vel[0]), self.X)
+        self.set_vel_init_drv(int(vel[1]), self.Y)
 
     def set_vel_init_drv(self, vel, drv="*"):
         'Set Initial Velocity'
@@ -53,11 +53,11 @@ class MSL_XY(Instrument.Instrument):
 
     def set_vel_max(self, vel):
         'Set the max velocity for each drive'
-        if not isinstance(vel, collections.abc.Iterable):
+        if not isinstance(vel, Iterable):
             vel = [vel, vel]
         
-        self.set_vel_max_drv(vel[0], self.X)
-        self.set_vel_max_drv(vel[1], self.Y)
+        self.set_vel_max_drv(int(vel[0]), self.X)
+        self.set_vel_max_drv(int(vel[1]), self.Y)
 
     def set_vel_max_drv(self, vel, drv="*"):
         'Set max velocity'
@@ -88,12 +88,12 @@ class MSL_XY(Instrument.Instrument):
         return int(self.query("{} PR V".format(drv)))
 
     def set_accel(self, acl):
-        if not isinstance(acl, collections.abc.Iterable):
+        if not isinstance(acl, Iterable):
             acl = [acl, acl]
         
         'Set acceleration for both drives'
-        self.set_accel_drv(acl[0], self.X)
-        self.set_accel_drv(acl[1], self.Y)
+        self.set_accel_drv(int(acl[0]), self.X)
+        self.set_accel_drv(int(acl[1]), self.Y)
 
     def set_accel_drv(self, acl, drv="*"):
         'Sets acceleration'
@@ -101,11 +101,11 @@ class MSL_XY(Instrument.Instrument):
 
     def set_decel(self, dec):
         'Set deceleration for both drives'
-        if not isinstance(dec, collections.abc.Iterable):
+        if not isinstance(dec, Iterable):
             dec = [dec, dec]
         
-        self.set_decel_drv(dec[0], self.X)
-        self.set_decel_drv(dec[1], self.Y)
+        self.set_decel_drv(int(dec[0]), self.X)
+        self.set_decel_drv(int(dec[1]), self.Y)
 
     def set_decel_drv(self, dec, drv="*"):
         'Sets deceleration'
@@ -135,29 +135,35 @@ class MSL_XY(Instrument.Instrument):
                 params.append(rd)
         return params
 
-    def move_abs(self, position):
+    def move_abs(self, position, blocking=True):
         """Move both stages to position
         
         Arguments:
             position (tuple of ints)
         """
-        if isinstance(position, collections.abc.Iterable):
-            self.move_abs_drv(position[0], self.X)
-            self.move_abs_drv(position[1], self.Y)
+        if isinstance(position, Iterable):
+            self.move_abs_drv(int(position[0]), self.X)
+            self.move_abs_drv(int(position[1]), self.Y)
         else:
-            self.move_abs_drv(position, self.X)
+            self.move_abs_drv(int(position), self.X)
+            
+        if blocking:
+            self.block_while_moving()
 
     def move_abs_drv(self, pos, drv="*"):
         'Moves to an absolute position from 0'
         self.write("{} MA {:d}".format(drv, pos))
 
-    def move_rel(self, distance):
+    def move_rel(self, distance, blocking=True):
         'Move both stages by a distance'
-        if not isinstance(distance, collections.abc.Iterable):
+        if not isinstance(distance, Iterable):
             distance = [distance, 0]
     
-        self.move_rel_drv(distance[0], self.X)
-        self.move_rel_drv(distance[1], self.Y)
+        self.move_rel_drv(int(distance[0]), self.X)
+        self.move_rel_drv(int(distance[1]), self.Y)
+        
+        if blocking:
+            self.block_while_moving()
 
     def move_rel_drv(self, dis, drv="*"):
         'Moves distance from current position'
@@ -168,16 +174,19 @@ class MSL_XY(Instrument.Instrument):
         self.write("X P=0")
         self.write("Y P=0")
         
+    def set_zero_drv(self, drv="*"):
+        self.write(f"{drv} P=0")
+        
     def set_curr_pos(self, position):
         """Set the current position
         
         Arguments:
-            position (tuple): tuple of current x and y positions to set"""
-        if not isinstance(position, collections.abc.Iterable):
+            position (tuple of ints): tuple of current x and y positions to set"""
+        if not isinstance(position, Iterable):
             position = [position, position]
             
-        self.set_curr_pos_drv(position[0], self.X)
-        self.set_curr_pos_drv(position[1], self.Y)
+        self.set_curr_pos_drv(int(position[0]), self.X)
+        self.set_curr_pos_drv(int(position[1]), self.Y)
         
     def set_curr_pos_drv(self, position, drv="*"):
         'Set the current position for one drive'
@@ -214,20 +223,23 @@ class MSL_XY(Instrument.Instrument):
 
     def home_drv(self, drv="*"):
         'Makes the minimum position the home'
-        self.moveAbs(-550000, drv)
-        self.block_while_moving(drv)
-        while self.getPos(drv) != '0':
-            self.set_zero(drv)
+        self.move_abs_drv(-550000, drv)
+        self.block_while_moving_drv(drv)
+        
+        self.set_zero_drv(drv)
 
-    def zero(self):
+    def zero(self, blocking=True):
         'Return the stage to the current zero position'
         self.zero_drv(self.X)
         self.zero_drv(self.Y)
         
+        if blocking:
+            self.block_while_moving()
+        
     def zero_drv(self, drv="*"):
         'Return a stage to the current zero position'
-        self.moveAbs(0, self.X)
-        self.moveAbs(0, self.Y)
+        self.move_abs_drv(0, self.X)
+        self.move_abs_drv(0, self.Y)
 
     def calibrate(self):
         'Calibrate both drives'
@@ -248,10 +260,10 @@ class MSL_XY(Instrument.Instrument):
         self.write("{} IP".format(drv))
 
 if __name__ == "__main__":
-    import visa
+    import pyvisa
 
     # Run test code
-    rm = visa.ResourceManager('@py')
+    rm = pyvisa.ResourceManager('@py')
     m = MSL_XY(rm.open_resource("ASRL/dev/ttyUSB0"))
     print("Set up communication with MSL Translation stages on {}".format(m.resource.resource_name))
     print()
